@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>푸드릿지 배송요청서</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Noto Sans KR', sans-serif; }
+        .form-container { background: linear-gradient(to bottom, #f8fafc, #e2e8f0); }
+        .input-focus { transition: all 0.3s ease; }
+        .input-focus:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
+        /* Modal Styles */
+        .modal-overlay {
+            transition: opacity 0.3s ease;
+        }
+        .modal-container {
+            transition: transform 0.3s ease, opacity 0.3s ease;
+        }
+    </style>
+</head>
+<body class="bg-gray-200">
+    <div class="form-container max-w-4xl mx-auto p-8 bg-white rounded-2xl shadow-xl my-10">
+        <!-- Header -->
+        <div class="mb-8 text-center">
+            <h1 class="text-3xl font-bold text-gray-800">푸드릿지 배송요청서</h1>
+            <p class="text-gray-600 mt-2">Foodridge Delivery Request Form</p>
+            <div class="text-gray-600 mt-6 text-sm leading-relaxed text-left bg-gray-50 p-4 rounded-lg">
+                <p>안녕하세요, 푸드릿지입니다.</p>
+                <p>본 요청서는 B2B 거래처 전용 배송 요청서입니다.</p>
+                <p>배송 요청일에 맞추어 최대한 배송이 진행될 수 있도록 하겠습니다.</p>
+                <p>단, 혼적의 경우 루트에 따라 배송일이 다소 늦어질 수 있음에 대해 양해 부탁드립니다.</p>
+                <p class="font-bold mt-2">문의: 02-6951-0780</p>
+            </div>
+        </div>
+
+        <form id="orderForm" class="space-y-6">
+            <!-- Customer Type -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700">고객 유형</label>
+                <select id="customerType" name="customerType" class="mt-1 block w-full p-3 border border-gray-300 rounded-lg input-focus" required>
+                    <option value="">선택하세요</option>
+                    <option value="existing">기존 고객 (기존 배송지)</option>
+                    <option value="existing_new_address">기존 고객 (다른 배송지)</option>
+                    <option value="new">신규 고객</option>
+                </select>
+            </div>
+
+            <!-- Customer Information -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label for="companyName" class="block text-sm font-medium text-gray-700">고객사명</label>
+                    <input type="text" id="companyName" name="companyName" class="mt-1 block w-full p-3 border border-gray-300 rounded-lg input-focus" required>
+                </div>
+                <div>
+                    <label for="contactPerson" class="block text-sm font-medium text-gray-700">담당자 이름</label>
+                    <input type="text" id="contactPerson" name="contactPerson" class="mt-1 block w-full p-3 border border-gray-300 rounded-lg input-focus" required>
+                </div>
+                <div>
+                    <label for="phoneNumber" class="block text-sm font-medium text-gray-700">연락처</label>
+                    <input type="tel" id="phoneNumber" name="phoneNumber" class="mt-1 block w-full p-3 border border-gray-300 rounded-lg input-focus" required>
+                </div>
+            </div>
+            
+            <!-- NEW: Customer Email Input -->
+            <div>
+                 <label for="customerEmail" class="block text-sm font-medium text-gray-700">담당자 이메일 (확인 메일 수신용)</label>
+                 <input type="email" id="customerEmail" name="customerEmail" class="mt-1 block w-full p-3 border border-gray-300 rounded-lg input-focus" placeholder="confirmation@example.com" required>
+            </div>
+
+            <!-- Delivery Address (Hidden for Existing Customers with Default Address) -->
+            <div id="addressSection" class="hidden">
+                <label for="deliveryAddress" class="block text-sm font-medium text-gray-700">배송요청주소</label>
+                <textarea id="deliveryAddress" name="deliveryAddress" class="mt-1 block w-full p-3 border border-gray-300 rounded-lg input-focus" placeholder="정확한 전체 주소를 입력해주세요 (시/도, 구/군 포함)"></textarea>
+            </div>
+
+            <!-- Products -->
+            <div>
+                <h2 class="text-lg font-semibold text-gray-800">제품 선택</h2>
+                <div id="productList" class="space-y-4 mt-4 bg-gray-50 p-4 rounded-lg">
+                    <!-- Product items will be dynamically added here -->
+                </div>
+            </div>
+
+            <!-- Total Quantity -->
+            <div>
+                <label for="totalQuantity" class="block text-sm font-medium text-gray-700">총 배송 수량 (박스)</label>
+                <input type="number" id="totalQuantity" name="totalQuantity" class="mt-1 block w-full p-3 bg-gray-100 border border-gray-300 rounded-lg" readonly>
+            </div>
+
+            <!-- Delivery Method -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700">배송 방법</label>
+                <select id="deliveryMethod" name="deliveryMethod" class="mt-1 block w-full p-3 border border-gray-300 rounded-lg input-focus" required>
+                    <option value="">선택하세요</option>
+                    <option value="delivery">배송 요청</option>
+                    <option value="pickup">푸드릿지 창고 픽업</option>
+                </select>
+            </div>
+
+            <!-- Delivery Date -->
+            <div>
+                <label for="deliveryDate" class="block text-sm font-medium text-gray-700">배송요청일</label>
+                <input type="date" id="deliveryDate" name="deliveryDate" class="mt-1 block w-full p-3 border border-gray-300 rounded-lg input-focus" required>
+                <p class="text-sm text-gray-500 mt-1">배송은 주말/공휴일을 제외하고 1~2일 소요될 수 있습니다.</p>
+            </div>
+
+            <!-- Requests -->
+            <div>
+                <label for="requests" class="block text-sm font-medium text-gray-700">요청사항</label>
+                <textarea id="requests" name="requests" class="mt-1 block w-full p-3 border border-gray-300 rounded-lg input-focus" maxlength="200" placeholder="요청사항은 200자 이내로 입력해주세요."></textarea>
+            </div>
+
+            <!-- Submit Button -->
+            <div class="text-center pt-4">
+                <button type="submit" id="submitButton" class="w-full md:w-auto bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 transition duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
+                    배송 요청서 제출
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Custom Modal -->
+    <div id="customModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
+        <div class="modal-container bg-white w-full max-w-md p-6 rounded-2xl shadow-2xl transform scale-95 opacity-0">
+            <h3 id="modalTitle" class="text-xl font-bold text-gray-800"></h3>
+            <p id="modalMessage" class="mt-4 text-gray-600"></p>
+            <div class="mt-6 text-right">
+                <button id="modalCloseButton" class="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-300 transition duration-200">닫기</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // --- START: CONFIGURATION ---
+            // 1. EmailJS Public Key
+            const EMAILJS_PUBLIC_KEY = "uShz4QaVUzFOJMOZs";
+
+            // 2. EmailJS Service ID
+            const EMAILJS_SERVICE_ID = "service_24b5nff";
+
+            // 3. EmailJS Template IDs
+            const FOODRIDGE_TEMPLATE_ID = "template_4wmwxm2";
+            const CUSTOMER_TEMPLATE_ID = "template_fg3wre7";
+            
+            // 4. Product List
+            const productData = [
+                { id: "product1", name: "캐나다 냉동 난백 5113 2kg 6팩 12kg" },
+                { id: "product2", name: "캐나다 냉동 전란 5313 2kg 6팩 12kg" },
+                { id: "product3", name: "캐나다 냉동 난백 5270 2kg 6팩 12kg" },
+                { id: "product4", name: "캐나다 냉동 슈퍼휩 5139 1kg 12팩 12kg" },
+                { id: "product5", name: "SQIZ 9MM 코팅 스킨오프 감자 2kg 6팩 12kg" }
+            ];
+            // --- END: CONFIGURATION ---
+
+            // Initialize EmailJS
+            emailjs.init(EMAILJS_PUBLIC_KEY);
+
+            const productListContainer = document.getElementById('productList');
+            
+            // Dynamically create product list
+            productData.forEach((product, index) => {
+                const item = document.createElement('div');
+                item.className = 'flex items-center justify-between';
+                item.innerHTML = `
+                    <div class="flex items-center">
+                        <input type="checkbox" id="${product.id}" name="products" value="${product.name}" class="h-5 w-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500">
+                        <label for="${product.id}" class="ml-3 text-sm text-gray-700">${product.name}</label>
+                    </div>
+                    <input type="number" id="quantity${index + 1}" name="quantity${index + 1}" class="w-24 p-2 border border-gray-300 rounded-lg input-focus" min="0" value="0" disabled>
+                `;
+                productListContainer.appendChild(item);
+            });
+
+            // Modal elements and functions
+            const modal = document.getElementById('customModal');
+            const modalContainer = modal.querySelector('.modal-container');
+            const modalTitle = document.getElementById('modalTitle');
+            const modalMessage = document.getElementById('modalMessage');
+            const modalCloseButton = document.getElementById('modalCloseButton');
+
+            function showModal(title, message) {
+                modalTitle.textContent = title;
+                modalMessage.innerHTML = message;
+                modal.classList.remove('hidden');
+                setTimeout(() => {
+                    modal.classList.remove('opacity-0');
+                    modalContainer.classList.remove('scale-95', 'opacity-0');
+                    modalContainer.classList.add('scale-100', 'opacity-100');
+                }, 10);
+            }
+
+            function hideModal() {
+                 modalContainer.classList.remove('scale-100', 'opacity-100');
+                 modalContainer.classList.add('scale-95', 'opacity-0');
+                 modal.classList.add('opacity-0');
+                 setTimeout(() => {
+                    modal.classList.add('hidden');
+                 }, 300);
+            }
+            
+            modalCloseButton.addEventListener('click', hideModal);
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    hideModal();
+                }
+            });
+
+            // Toggle address section
+            document.getElementById('customerType').addEventListener('change', function() {
+                const addressSection = document.getElementById('addressSection');
+                const deliveryAddress = document.getElementById('deliveryAddress');
+                if (this.value === 'existing') {
+                    addressSection.classList.add('hidden');
+                    deliveryAddress.removeAttribute('required');
+                } else {
+                    addressSection.classList.remove('hidden');
+                    deliveryAddress.setAttribute('required', '');
+                }
+            });
+
+            // Calculate total quantity
+            function calculateTotal() {
+                let total = 0;
+                productData.forEach((_, index) => {
+                    const quantityInput = document.getElementById(`quantity${index + 1}`);
+                    if (!quantityInput.disabled) {
+                        total += parseInt(quantityInput.value) || 0;
+                    }
+                });
+                document.getElementById('totalQuantity').value = total;
+            }
+
+            productData.forEach((product, index) => {
+                const checkbox = document.getElementById(product.id);
+                const quantityInput = document.getElementById(`quantity${index + 1}`);
+                checkbox.addEventListener('change', function() {
+                    quantityInput.disabled = !this.checked;
+                    if (!this.checked) {
+                        quantityInput.value = 0;
+                    } else {
+                         quantityInput.value = 1;
+                    }
+                    calculateTotal();
+                });
+                quantityInput.addEventListener('input', calculateTotal);
+            });
+
+            // Form submission
+            document.getElementById('orderForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const submitButton = document.getElementById('submitButton');
+                submitButton.disabled = true;
+                submitButton.textContent = '전송 중...';
+
+                const formData = new FormData(this);
+                const data = {
+                    customerType: formData.get('customerType'),
+                    companyName: formData.get('companyName'),
+                    contactPerson: formData.get('contactPerson'),
+                    phoneNumber: formData.get('phoneNumber'),
+                    customerEmail: formData.get('customerEmail'),
+                    deliveryAddress: formData.get('deliveryAddress') || '기존 배송지',
+                    products: [],
+                    totalQuantity: formData.get('totalQuantity'),
+                    deliveryMethod: formData.get('deliveryMethod'),
+                    deliveryDate: formData.get('deliveryDate'),
+                    requests: formData.get('requests') || '없음'
+                };
+
+                productData.forEach((product, index) => {
+                    const checkbox = document.getElementById(product.id);
+                    const quantity = document.getElementById(`quantity${index + 1}`).value;
+                    if (checkbox.checked && quantity > 0) {
+                        data.products.push(`${checkbox.value}: ${quantity} 박스`);
+                    }
+                });
+                
+                if (data.products.length === 0) {
+                    showModal('주문 오류', '하나 이상의 제품을 선택하고 수량을 입력해주세요.');
+                    submitButton.disabled = false;
+                    submitButton.textContent = '배송 요청서 제출';
+                    return;
+                }
+
+                const productListString = data.products.join('<br>');
+                
+                const customerTypeMap = {
+                    'existing': '기존 고객 (기존 배송지)',
+                    'existing_new_address': '기존 고객 (다른 배송지)',
+                    'new': '신규 고객'
+                };
+                const deliveryMethodMap = {
+                    'delivery': '배송 요청',
+                    'pickup': '푸드릿지 창고 픽업'
+                };
+
+                const foodridgeEmailParams = {
+                    customer_type: customerTypeMap[data.customerType] || data.customerType,
+                    company_name: data.companyName,
+                    contact_person: data.contactPerson,
+                    phone_number: data.phoneNumber,
+                    customer_email: data.customerEmail,
+                    delivery_address: data.deliveryAddress,
+                    products: productListString,
+                    total_quantity: data.totalQuantity,
+                    delivery_method: deliveryMethodMap[data.deliveryMethod] || data.deliveryMethod,
+                    delivery_date: data.deliveryDate,
+                    requests: data.requests
+                };
+
+                emailjs.send(EMAILJS_SERVICE_ID, FOODRIDGE_TEMPLATE_ID, foodridgeEmailParams)
+                    .then(() => {
+                        const customerEmailParams = {
+                            to_email: data.customerEmail,
+                            company_name: data.companyName,
+                            contact_person: data.contactPerson,
+                        };
+
+                        emailjs.send(EMAILJS_SERVICE_ID, CUSTOMER_TEMPLATE_ID, customerEmailParams)
+                            .then(() => {
+                                showModal('제출 완료', '주문이 성공적으로 제출되었습니다.<br>담당자 이메일로 확인 메일이 발송되었습니다.');
+                                document.getElementById('orderForm').reset();
+                                calculateTotal();
+                                document.getElementById('addressSection').classList.add('hidden');
+                            }, (error) => {
+                                console.error('Customer Email Error:', error);
+                                showModal('제출 완료 (일부 오류)', '주문은 성공적으로 제출되었으나, 고객 확인 이메일 전송에 실패했습니다. EmailJS의 고객용 템플릿 ID를 확인해주세요.');
+                            })
+                            .finally(() => {
+                                submitButton.disabled = false;
+                                submitButton.textContent = '배송 요청서 제출';
+                            });
+
+                    }, (error) => {
+                        console.error('Foodridge Email Error:', error);
+                        showModal('제출 실패', '오류가 발생하여 주문을 제출하지 못했습니다. 잠시 후 다시 시도해주세요. (EmailJS 설정 확인 필요)');
+                        submitButton.disabled = false;
+                        submitButton.textContent = '배송 요청서 제출';
+                    });
+            });
+
+            // Restrict past dates for delivery
+            const today = new Date();
+            today.setDate(today.getDate());
+            const yyyy = today.getFullYear();
+            const mm = String(today.getMonth() + 1).padStart(2, '0');
+            const dd = String(today.getDate()).padStart(2, '0');
+            document.getElementById('deliveryDate').setAttribute('min', `${yyyy}-${mm}-${dd}`);
+        });
+    </script>
+</body>
+</html>
