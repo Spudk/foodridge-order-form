@@ -1,357 +1,555 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>푸드릿지 배송요청서</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
-    <style>
-        body { font-family: 'Noto Sans KR', sans-serif; }
-        .form-container { background: linear-gradient(to bottom, #f8fafc, #e2e8f0); }
-        .input-focus { transition: all 0.3s ease; }
-        .input-focus:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
-        /* Modal Styles */
-        .modal-overlay {
-            transition: opacity 0.3s ease;
-        }
-        .modal-container {
-            transition: transform 0.3s ease, opacity 0.3s ease;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>푸드릿지 발주서 (모바일 수정 · V2 merge)</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans KR', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 10px;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .container { max-width: 680px; margin: 0 auto; background: #fff; border-radius: 16px; box-shadow: 0 18px 36px rgba(0,0,0,.15); overflow: hidden; }
+    .header { background: linear-gradient(135deg, #4CAF50 0%, #22c55e 100%); color:#fff; padding: 18px 20px; text-align:center; }
+    .header h1 { font-size: 1.35rem; font-weight: 800; letter-spacing: .02em; }
+    .content { padding: 18px; }
+    .section { margin-bottom: 22px; }
+    .section-title { font-size: 1.05rem; font-weight: 800; color:#0f172a; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 2px solid #f1f5f9; }
+    .form-group { margin-bottom: 12px; }
+    .form-group label { display:block; font-size:.9rem; font-weight:700; color:#334155; margin-bottom:6px; }
+    .form-group input, .form-group select, .form-group textarea {
+      width:100%; padding:12px 14px; border:2px solid #e2e8f0; border-radius: 10px; font-size: 1rem; transition: box-shadow .2s, border-color .2s;
+    }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+      outline:none; border-color:#22c55e; box-shadow: 0 0 0 4px rgba(34,197,94,.15);
+    }
+    .warehouse-section { background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:12px; margin-bottom:10px; }
+    .warehouse-title { font-weight:800; color:#0f172a; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; }
+    .warehouse-code { font-size: .75rem; padding: 2px 8px; border-radius:9999px; background:#10b981; color:#fff; font-weight:800; }
+    .warehouse-tax { font-size: .7rem; padding: 2px 6px; border-radius:4px; font-weight:600; }
+    .tax-exempt { background:#f59e0b; color:#fff; }
+    .tax-inclusive { background:#3b82f6; color:#fff; }
+    .product-item { display:flex; align-items:center; gap:10px; background:#fff; border-radius:10px; padding:10px; margin-top:8px; box-shadow: 0 1px 3px rgba(2,6,23,.06); }
+    .product-item input[type="checkbox"] { width:22px; height:22px; accent-color:#22c55e; }
+    .product-info { flex:1; min-width:0; }
+    .product-code { font-size:.9rem; font-weight:900; color:#0f172a; }
+    .product-name { font-size:.85rem; color:#475569; margin-top:2px; }
+    .quantity { display:flex; align-items:center; gap:6px; }
+    .quantity-input { width:90px; padding:10px 12px; text-align:center; border:2px solid #e2e8f0; border-radius:10px; font-size:1rem; }
+    .summary-grid { display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
+    .summary-item { background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:12px; text-align:center; }
+    .summary-item .label { font-size:.8rem; color:#64748b; }
+    .summary-item .value { font-size:1.25rem; font-weight:900; color:#0f172a; }
+    .total-summary { grid-column: span 2; background:linear-gradient(135deg,#22c55e,#16a34a); color:#fff; border:none; }
+    .total-summary .value { color:#fff; }
+    .buttons { display:flex; gap:10px; margin-top:12px; }
+    .btn { flex:1; padding:14px; border:none; border-radius:12px; font-weight:800; letter-spacing:.02em; cursor:pointer; box-shadow: 0 6px 14px rgba(2,6,23,.15); }
+    .btn-secondary { background:#0ea5e9; color:#fff; }
+    .btn-primary { background:#16a34a; color:#fff; }
+    .required { color:#ef4444; }
+    .delivery-notice { background:#fef3c7; border:1px solid #f59e0b; border-radius:10px; padding:12px; margin-top:12px; }
+    .delivery-notice-icon { font-size:1.2rem; }
+    .delivery-notice-title { font-weight:700; color:#92400e; font-size:.9rem; margin-bottom:6px; }
+    .delivery-notice-content { color:#92400e; font-size:.85rem; line-height:1.4; }
+    /* Modal */
+    .modal { display:none; position:fixed; inset:0; z-index:1000; background:rgba(0,0,0,.5); }
+    .modal-content { width:min(92%, 520px); max-height:82vh; overflow:auto; background:#fff; margin: 7vh auto; border-radius:16px; padding:18px; }
+    .modal-header { display:flex; align-items:center; justify-content:space-between; padding-bottom:10px; border-bottom:1px solid #e2e8f0; }
+    .close { font-size:28px; font-weight:800; color:#94a3b8; cursor:pointer; }
+    @media (max-width:480px) {
+      .container { border-radius: 0; }
+      .buttons { flex-direction: column; }
+      .summary-grid { grid-template-columns: 1fr; }
+      .total-summary { grid-column: span 1; }
+    }
+    /* iOS zoom prevention on inputs */
+    input, select, textarea { font-size:16px; }
+  </style>
 </head>
-<body class="bg-gray-200">
-    <div class="form-container max-w-4xl mx-auto p-8 bg-white rounded-2xl shadow-xl my-10">
-        <!-- Header -->
-        <div class="mb-8 text-center">
-            <h1 class="text-3xl font-bold text-gray-800">푸드릿지 배송요청서</h1>
-            <p class="text-gray-600 mt-2">Foodridge Delivery Request Form</p>
-            <div class="text-gray-600 mt-6 text-sm leading-relaxed text-left bg-gray-50 p-4 rounded-lg">
-                <p>안녕하세요, 푸드릿지입니다.</p>
-                <p>본 요청서는 B2B 거래처 전용 배송 요청서입니다.</p>
-                <p>배송 요청일에 맞추어 최대한 배송이 진행될 수 있도록 하겠습니다.</p>
-                <p>단, 혼적의 경우 루트에 따라 배송일이 다소 늦어질 수 있음에 대해 양해 부탁드립니다.</p>
-                <p class="font-bold mt-2">문의: 02-6951-0780</p>
-            </div>
-        </div>
-
-        <form id="orderForm" class="space-y-6">
-            <!-- Customer Type -->
-            <div>
-                <label class="block text-sm font-medium text-gray-700">고객 유형</label>
-                <select id="customerType" name="customerType" class="mt-1 block w-full p-3 border border-gray-300 rounded-lg input-focus" required>
-                    <option value="">선택하세요</option>
-                    <option value="existing">기존 고객 (기존 배송지)</option>
-                    <option value="existing_new_address">기존 고객 (다른 배송지)</option>
-                    <option value="new">신규 고객</option>
-                </select>
-            </div>
-
-            <!-- Customer Information -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                    <label for="companyName" class="block text-sm font-medium text-gray-700">고객사명</label>
-                    <input type="text" id="companyName" name="companyName" class="mt-1 block w-full p-3 border border-gray-300 rounded-lg input-focus" required>
-                </div>
-                <div>
-                    <label for="contactPerson" class="block text-sm font-medium text-gray-700">담당자 이름</label>
-                    <input type="text" id="contactPerson" name="contactPerson" class="mt-1 block w-full p-3 border border-gray-300 rounded-lg input-focus" required>
-                </div>
-                <div>
-                    <label for="phoneNumber" class="block text-sm font-medium text-gray-700">연락처</label>
-                    <input type="tel" id="phoneNumber" name="phoneNumber" class="mt-1 block w-full p-3 border border-gray-300 rounded-lg input-focus" required>
-                </div>
-            </div>
-            
-            <!-- NEW: Customer Email Input -->
-            <div>
-                 <label for="customerEmail" class="block text-sm font-medium text-gray-700">담당자 이메일 (확인 메일 수신용)</label>
-                 <input type="email" id="customerEmail" name="customerEmail" class="mt-1 block w-full p-3 border border-gray-300 rounded-lg input-focus" placeholder="confirmation@example.com" required>
-            </div>
-
-            <!-- Delivery Address (Hidden for Existing Customers with Default Address) -->
-            <div id="addressSection" class="hidden">
-                <label for="deliveryAddress" class="block text-sm font-medium text-gray-700">배송요청주소</label>
-                <textarea id="deliveryAddress" name="deliveryAddress" class="mt-1 block w-full p-3 border border-gray-300 rounded-lg input-focus" placeholder="정확한 전체 주소를 입력해주세요 (시/도, 구/군 포함)"></textarea>
-            </div>
-
-            <!-- Products -->
-            <div>
-                <h2 class="text-lg font-semibold text-gray-800">제품 선택</h2>
-                <div id="productList" class="space-y-4 mt-4 bg-gray-50 p-4 rounded-lg">
-                    <!-- Product items will be dynamically added here -->
-                </div>
-            </div>
-
-            <!-- Total Quantity -->
-            <div>
-                <label for="totalQuantity" class="block text-sm font-medium text-gray-700">총 배송 수량 (박스)</label>
-                <input type="number" id="totalQuantity" name="totalQuantity" class="mt-1 block w-full p-3 bg-gray-100 border border-gray-300 rounded-lg" readonly>
-            </div>
-
-            <!-- Delivery Method -->
-            <div>
-                <label class="block text-sm font-medium text-gray-700">배송 방법</label>
-                <select id="deliveryMethod" name="deliveryMethod" class="mt-1 block w-full p-3 border border-gray-300 rounded-lg input-focus" required>
-                    <option value="">선택하세요</option>
-                    <option value="delivery">배송 요청</option>
-                    <option value="pickup">푸드릿지 창고 픽업</option>
-                </select>
-            </div>
-
-            <!-- Delivery Date -->
-            <div>
-                <label for="deliveryDate" class="block text-sm font-medium text-gray-700">배송요청일</label>
-                <input type="date" id="deliveryDate" name="deliveryDate" class="mt-1 block w-full p-3 border border-gray-300 rounded-lg input-focus" required>
-                <p class="text-sm text-gray-500 mt-1">배송은 주말/공휴일을 제외하고 1~2일 소요될 수 있습니다.</p>
-            </div>
-
-            <!-- Requests -->
-            <div>
-                <label for="requests" class="block text-sm font-medium text-gray-700">요청사항</label>
-                <textarea id="requests" name="requests" class="mt-1 block w-full p-3 border border-gray-300 rounded-lg input-focus" maxlength="200" placeholder="요청사항은 200자 이내로 입력해주세요."></textarea>
-            </div>
-
-            <!-- Submit Button -->
-            <div class="text-center pt-4">
-                <button type="submit" id="submitButton" class="w-full md:w-auto bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 transition duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
-                    배송 요청서 제출
-                </button>
-            </div>
-        </form>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🍽️ 푸드릿지 발주서</h1>
     </div>
 
-    <!-- Custom Modal -->
-    <div id="customModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
-        <div class="modal-container bg-white w-full max-w-md p-6 rounded-2xl shadow-2xl transform scale-95 opacity-0">
-            <h3 id="modalTitle" class="text-xl font-bold text-gray-800"></h3>
-            <p id="modalMessage" class="mt-4 text-gray-600"></p>
-            <div class="mt-6 text-right">
-                <button id="modalCloseButton" class="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-300 transition duration-200">닫기</button>
-            </div>
+    <div class="content">
+      <form id="orderForm" novalidate>
+        <!-- 기본 정보 -->
+        <div class="section">
+          <h3 class="section-title">📋 기본 정보</h3>
+
+          <div class="form-group">
+            <label>발주번호 (고객이 원할 경우 수정 가능)</label>
+            <input type="text" id="orderNumber" placeholder="자동 생성됩니다">
+          </div>
+
+          <div class="form-group">
+            <label>고객 유형 <span class="required">*</span></label>
+            <select id="customerType" required>
+              <option value="">선택하세요</option>
+              <option value="existing-same">기존 고객 (기존 배송지)</option>
+              <option value="existing-different">기존 고객 (다른 배송지)</option>
+              <option value="new">신규 고객</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>고객사명 <span class="required">*</span></label>
+            <input type="text" id="companyName" required placeholder="회사명">
+          </div>
+
+          <div class="form-group">
+            <label>담당자 이름 <span class="required">*</span></label>
+            <input type="text" id="contactName" required placeholder="담당자명">
+          </div>
+
+          <div class="form-group">
+            <label>연락처 <span class="required">*</span></label>
+            <input type="tel" id="contactPhone" required placeholder="010-0000-0000">
+          </div>
+
+          <div class="form-group">
+            <label>이메일 <span class="required">*</span></label>
+            <input type="email" id="email" required placeholder="name@company.com">
+          </div>
+
+          <div class="form-group" id="addressGroup">
+            <label>배송주소 <span class="required">*</span></label>
+            <input type="text" id="deliveryAddress" required placeholder="시/군/구, 상세주소">
+          </div>
         </div>
+
+        <!-- 제품 선택 -->
+        <div class="section">
+          <h3 class="section-title">📦 제품 선택</h3>
+
+          <!-- 이천 창고 -->
+          <div class="warehouse-section">
+            <div class="warehouse-title">
+              <span>🏭 이천 창고 (캐나다 계란류) 부가세 면세 상품</span>
+              <span class="warehouse-code">ICN</span>
+            </div>
+
+            <div class="product-item">
+              <input type="checkbox" id="prod-5113">
+              <div class="product-info">
+                <div class="product-code">5113</div>
+                <div class="product-name">캐나다 냉동 난백 2kg×6팩</div>
+              </div>
+              <div class="quantity">
+                <input type="number" class="quantity-input" id="qty-5113" min="0" inputmode="numeric" placeholder="0">
+                <span>박스</span>
+              </div>
+            </div>
+
+            <div class="product-item">
+              <input type="checkbox" id="prod-5313">
+              <div class="product-info">
+                <div class="product-code">5313</div>
+                <div class="product-name">캐나다 냉동 전란 2kg×6팩</div>
+              </div>
+              <div class="quantity">
+                <input type="number" class="quantity-input" id="qty-5313" min="0" inputmode="numeric" placeholder="0">
+                <span>박스</span>
+              </div>
+            </div>
+
+            <div class="product-item">
+              <input type="checkbox" id="prod-5270">
+              <div class="product-info">
+                <div class="product-code">5270</div>
+                <div class="product-name">캐나다 냉동 난황 2kg×6팩</div>
+              </div>
+              <div class="quantity">
+                <input type="number" class="quantity-input" id="qty-5270" min="0" inputmode="numeric" placeholder="0">
+                <span>박스</span>
+              </div>
+            </div>
+
+            <div class="product-item">
+              <input type="checkbox" id="prod-5139">
+              <div class="product-info">
+                <div class="product-code">5139</div>
+                <div class="product-name">캐나다 냉동 슈퍼휩 1kg×12팩</div>
+              </div>
+              <div class="quantity">
+                <input type="number" class="quantity-input" id="qty-5139" min="0" inputmode="numeric" placeholder="0">
+                <span>박스</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 안성 창고 -->
+          <div class="warehouse-section">
+            <div class="warehouse-title">
+              <span>🏭 안성 창고 (SQIZ 감자) 부가세 적용 상품</span>
+              <span class="warehouse-code">ASG</span>
+            </div>
+
+            <div class="product-item">
+              <input type="checkbox" id="prod-fr02001">
+              <div class="product-info">
+                <div class="product-code">FR02001</div>
+                <div class="product-name">SQIZ 9MM 코팅 스킨오프 감자 2kg×6팩</div>
+              </div>
+              <div class="quantity">
+                <input type="number" class="quantity-input" id="qty-fr02001" min="0" inputmode="numeric" placeholder="0">
+                <span>박스</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 주문 요약 -->
+        <div class="section">
+          <h3 class="section-title">📊 주문 요약</h3>
+          <div class="summary-grid">
+            <div class="summary-item">
+              <div class="label">이천창고</div>
+              <div class="value" id="icnTotal">0박스</div>
+            </div>
+            <div class="summary-item">
+              <div class="label">안성창고</div>
+              <div class="value" id="asgTotal">0박스</div>
+            </div>
+            <div class="summary-item total-summary">
+              <div class="label">총 주문량</div>
+              <div class="value" id="grandTotal">0박스</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 배송 정보 -->
+        <div class="section">
+          <h3 class="section-title">🚚 배송 정보</h3>
+
+          <div class="form-group">
+            <label>배송 방법 <span class="required">*</span></label>
+            <select id="deliveryMethod" required>
+              <option value="">선택하세요</option>
+              <option value="delivery">배송 요청</option>
+              <option value="pickup">창고 픽업</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>배송요청일 또는 픽업희망일 <span class="required">*</span></label>
+            <input type="date" id="deliveryDate" required>
+          </div>
+
+          <div class="form-group">
+            <label>요청사항</label>
+            <textarea id="requests" rows="2" placeholder="예: 10~12시 희망, 기사님 연락 요망 등"></textarea>
+          </div>
+
+          <!-- 배송 안내사항 -->
+          <div class="delivery-notice">
+            <div style="display:flex; align-items:flex-start; gap:8px;">
+              <span class="delivery-notice-icon">⚠️</span>
+              <div>
+                <div class="delivery-notice-title">배송 안내사항</div>
+                <div class="delivery-notice-content">
+                  • <strong>이천창고</strong>와 <strong>안성창고</strong> 제품은 <strong>합배송이 불가</strong>합니다.<br>
+                  • 두 창고 제품을 함께 주문하실 경우 별도 배송됩니다.<br>
+                  • 각각 MOQ를 유지해 주시기 바랍니다.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="buttons">
+          <button type="button" class="btn btn-secondary" id="btnReview">주문내용 확인</button>
+          <button type="submit" class="btn btn-primary" id="btnSubmit">발주서 제출</button>
+        </div>
+      </form>
     </div>
+  </div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // --- START: CONFIGURATION ---
-            // 1. EmailJS Public Key
-            const EMAILJS_PUBLIC_KEY = "uShz4QaVUzFOJMOZs";
+  <!-- 주문 확인 모달 -->
+  <div id="orderModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modalTitle">📋 주문내용 확인</h3>
+        <span class="close" id="modalClose" aria-label="닫기">&times;</span>
+      </div>
+      <div id="orderSummaryContent" style="line-height:1.6;"></div>
+    </div>
+  </div>
 
-            // 2. EmailJS Service ID
-            const EMAILJS_SERVICE_ID = "service_24b5nff";
+  <!-- EmailJS -->
+  <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
 
-            // 3. EmailJS Template IDs
-            const FOODRIDGE_TEMPLATE_ID = "template_4wmwxm2";
-            const CUSTOMER_TEMPLATE_ID = "template_fg3wre7";
-            
-            // 4. Product List
-            const productData = [
-                { id: "product1", name: "캐나다 냉동 난백 5113 2kg 6팩 12kg" },
-                { id: "product2", name: "캐나다 냉동 전란 5313 2kg 6팩 12kg" },
-                { id: "product3", name: "캐나다 냉동 난황 5270 2kg 6팩 12kg" },
-                { id: "product4", name: "캐나다 냉동 슈퍼휩 5139 1kg 12팩 12kg" },
-                { id: "product5", name: "SQIZ 9MM 코팅 스킨오프 감자 2kg 6팩 12kg" }
-            ];
-            // --- END: CONFIGURATION ---
+  <script>
+    // --- Email client wrapper (from V2, guarded) ---
+    const EmailClient = {
+      _ready:false,
+      init(publicKey){
+        try{
+          if(window.emailjs && typeof window.emailjs.init === 'function'){
+            window.emailjs.init(publicKey);
+            this._ready = true;
+          } else {
+            console.warn('EmailJS not available; will fall back to mailto.');
+          }
+        }catch(e){ console.warn('EmailJS init failed:', e); }
+      },
+      send(serviceId, templateId, params){
+        if(this._ready && window.emailjs && typeof window.emailjs.send === 'function'){
+          return window.emailjs.send(serviceId, templateId, params);
+        } else {
+          // Fallback: open mailto with composed body
+          const to = encodeURIComponent('order@foodridge.co.kr');
+          const subject = encodeURIComponent('[푸드릿지] 신규 발주서 제출 - ' + (params.order_number || ''));
+          const body = encodeURIComponent(params.__plain || '발주 내역이 첨부됩니다.');
+          window.location.href = `mailto:${to}?subject=${subject}&body=${body}`;
+          return Promise.resolve();
+        }
+      }
+    };
 
-            // Initialize EmailJS
-            emailjs.init(EMAILJS_PUBLIC_KEY);
+    // --- Config (same as V2) ---
+    const EMAILJS_PUBLIC_KEY = "uShz4QaVUzFOJMOZs";
+    const EMAILJS_SERVICE_ID = "service_24b5nff";
+    const FOODRIDGE_TEMPLATE_ID = "template_4wmwxm2";
+    const CUSTOMER_TEMPLATE_ID = "template_fg3wre7";
 
-            const productListContainer = document.getElementById('productList');
-            
-            // Dynamically create product list
-            productData.forEach((product, index) => {
-                const item = document.createElement('div');
-                item.className = 'flex items-center justify-between';
-                item.innerHTML = `
-                    <div class="flex items-center">
-                        <input type="checkbox" id="${product.id}" name="products" value="${product.name}" class="h-5 w-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500">
-                        <label for="${product.id}" class="ml-3 text-sm text-gray-700">${product.name}</label>
-                    </div>
-                    <input type="number" id="quantity${index + 1}" name="quantity${index + 1}" class="w-24 p-2 border border-gray-300 rounded-lg input-focus" min="0" value="0" disabled>
-                `;
-                productListContainer.appendChild(item);
-            });
+    EmailClient.init(EMAILJS_PUBLIC_KEY);
 
-            // Modal elements and functions
-            const modal = document.getElementById('customModal');
-            const modalContainer = modal.querySelector('.modal-container');
-            const modalTitle = document.getElementById('modalTitle');
-            const modalMessage = document.getElementById('modalMessage');
-            const modalCloseButton = document.getElementById('modalCloseButton');
+    // Helpers
+    const $ = (id)=>document.getElementById(id);
+    const todayISO = ()=>{ const t=new Date(); return t.toISOString().split('T')[0]; };
 
-            function showModal(title, message) {
-                modalTitle.textContent = title;
-                modalMessage.innerHTML = message;
-                modal.classList.remove('hidden');
-                setTimeout(() => {
-                    modal.classList.remove('opacity-0');
-                    modalContainer.classList.remove('scale-95', 'opacity-0');
-                    modalContainer.classList.add('scale-100', 'opacity-100');
-                }, 10);
-            }
+    // Prevent past dates & 발주번호 자동 생성
+    $('deliveryDate').min = todayISO();
+    
+    // 페이지 로드 시 발주번호 자동 생성
+    function generateOrderNumber() {
+      const now = new Date();
+      return `F${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}-${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}`;
+    }
+    
+    // 초기 발주번호 설정
+    $('orderNumber').value = generateOrderNumber();
 
-            function hideModal() {
-                 modalContainer.classList.remove('scale-100', 'opacity-100');
-                 modalContainer.classList.add('scale-95', 'opacity-0');
-                 modal.classList.add('opacity-0');
-                 setTimeout(() => {
-                    modal.classList.add('hidden');
-                 }, 300);
-            }
-            
-            modalCloseButton.addEventListener('click', hideModal);
-            modal.addEventListener('click', (e) => {
-                if (e.target === modal) {
-                    hideModal();
-                }
-            });
+    const ICN = ['5113','5313','5270','5139'];
+    const ASG = ['fr02001'];
 
-            // Toggle address section
-            document.getElementById('customerType').addEventListener('change', function() {
-                const addressSection = document.getElementById('addressSection');
-                const deliveryAddress = document.getElementById('deliveryAddress');
-                if (this.value === 'existing') {
-                    addressSection.classList.add('hidden');
-                    deliveryAddress.removeAttribute('required');
-                } else {
-                    addressSection.classList.remove('hidden');
-                    deliveryAddress.setAttribute('required', '');
-                }
-            });
+    function parseQty(v){ const n = parseInt(String(v).replace(/[^0-9]/g,'')); return isNaN(n)?0:n; }
 
-            // Calculate total quantity
-            function calculateTotal() {
-                let total = 0;
-                productData.forEach((_, index) => {
-                    const quantityInput = document.getElementById(`quantity${index + 1}`);
-                    if (!quantityInput.disabled) {
-                        total += parseInt(quantityInput.value) || 0;
-                    }
-                });
-                document.getElementById('totalQuantity').value = total;
-            }
+    function updateTotals(){
+      let icn=0, asg=0;
+      ICN.forEach(id=>{
+        const cb = $('prod-'+id);
+        const qty = parseQty(($('qty-'+id)||{}).value);
+        if(cb && cb.checked && qty>0) icn += qty;
+      });
+      ASG.forEach(id=>{
+        const cb = $('prod-'+id);
+        const qty = parseQty(($('qty-'+id)||{}).value);
+        if(cb && cb.checked && qty>0) asg += qty;
+      });
+      $('icnTotal').textContent = icn + '박스';
+      $('asgTotal').textContent = asg + '박스';
+      $('grandTotal').textContent = (icn+asg) + '박스';
+    }
 
-            productData.forEach((product, index) => {
-                const checkbox = document.getElementById(product.id);
-                const quantityInput = document.getElementById(`quantity${index + 1}`);
-                checkbox.addEventListener('change', function() {
-                    quantityInput.disabled = !this.checked;
-                    if (!this.checked) {
-                        quantityInput.value = 0;
-                    } else {
-                         quantityInput.value = 1;
-                    }
-                    calculateTotal();
-                });
-                quantityInput.addEventListener('input', calculateTotal);
-            });
+    // Robust event wiring for mobile (input + change + keyup)
+    function wireQtySync(){
+      const all = [...ICN, ...ASG];
+      all.forEach(id=>{
+        const cb = $('prod-'+id);
+        const qty = $('qty-'+id);
+        if(!cb || !qty) return;
+        // When checkbox toggled
+        cb.addEventListener('change', ()=>{
+          if(cb.checked && (!qty.value || parseQty(qty.value)===0)){ qty.value = '1'; }
+          if(!cb.checked){ qty.value = ''; }
+          updateTotals();
+        }, {passive:true});
+        // When qty typed
+        const onQtyChange = ()=>{
+          const val = parseQty(qty.value);
+          cb.checked = val>0;
+          // normalize to numeric (prevents iOS keeping leading zeros)
+          qty.value = val>0 ? String(val) : '';
+          updateTotals();
+        };
+        ['input','change','keyup','blur'].forEach(evt=>qty.addEventListener(evt, onQtyChange, {passive:true}));
+      });
+    }
 
-            // Form submission
-            document.getElementById('orderForm').addEventListener('submit', function(e) {
-                e.preventDefault();
-                
-                const submitButton = document.getElementById('submitButton');
-                submitButton.disabled = true;
-                submitButton.textContent = '전송 중...';
+    // Review modal
+    function showOrderSummary(){
+      let html = '';
+      html += `<p><strong>발주번호:</strong> ${$('orderNumber').value || '자동 생성됩니다'}</p>`;
+      html += `<p><strong>고객사:</strong> ${$('companyName').value}</p>`;
+      html += `<p><strong>담당자:</strong> ${$('contactName').value}</p>`;
+      html += `<p><strong>연락처:</strong> ${$('contactPhone').value}</p>`;
+      html += `<p><strong>이메일:</strong> ${$('email').value}</p>`;
+      html += `<p><strong>배송주소:</strong> ${$('deliveryAddress').value}</p>`;
 
-                const formData = new FormData(this);
-                const data = {
-                    customerType: formData.get('customerType'),
-                    companyName: formData.get('companyName'),
-                    contactPerson: formData.get('contactPerson'),
-                    phoneNumber: formData.get('phoneNumber'),
-                    customerEmail: formData.get('customerEmail'),
-                    deliveryAddress: formData.get('deliveryAddress') || '기존 배송지',
-                    products: [],
-                    totalQuantity: formData.get('totalQuantity'),
-                    deliveryMethod: formData.get('deliveryMethod'),
-                    deliveryDate: formData.get('deliveryDate'),
-                    requests: formData.get('requests') || '없음'
-                };
+      html += '<h4 style="margin:14px 0 6px; color:#16a34a">📦 선택 제품</h4>';
+      const list = [];
+      const P = [
+        {id:'5113', name:'캐나다 냉동 난백 2kg×6팩', wh:'이천'},
+        {id:'5313', name:'캐나다 냉동 전란 2kg×6팩', wh:'이천'},
+        {id:'5270', name:'캐나다 냉동 난황 2kg×6팩', wh:'이천'},
+        {id:'5139', name:'캐나다 냉동 슈퍼휩 1kg×12팩', wh:'이천'},
+        {id:'fr02001', name:'SQIZ 9MM 코팅 스킨오프 감자 2kg×6팩', wh:'안성'}
+      ];
+      P.forEach(p=>{
+        const cb = $('prod-'+p.id);
+        const q = parseQty(($('qty-'+p.id)||{}).value);
+        if(cb && cb.checked && q>0){ list.push(`• [${p.wh}] ${p.id} - ${p.name}: <strong>${q}박스</strong>`); }
+      });
+      html += list.length ? `<div>${list.join('<br>')}</div>` : `<p style="color:#ef4444">선택된 제품이 없습니다.</p>`;
 
-                productData.forEach((product, index) => {
-                    const checkbox = document.getElementById(product.id);
-                    const quantity = document.getElementById(`quantity${index + 1}`).value;
-                    if (checkbox.checked && quantity > 0) {
-                        data.products.push(`${checkbox.value}: ${quantity} 박스`);
-                    }
-                });
-                
-                if (data.products.length === 0) {
-                    showModal('주문 오류', '하나 이상의 제품을 선택하고 수량을 입력해주세요.');
-                    submitButton.disabled = false;
-                    submitButton.textContent = '배송 요청서 제출';
-                    return;
-                }
+      html += '<h4 style="margin:14px 0 6px; color:#16a34a">🚚 배송 정보</h4>';
+      const dm = $('deliveryMethod');
+      const dmText = dm.options[dm.selectedIndex]?.text || '미선택';
+      html += `<p><strong>배송방법:</strong> ${dmText}</p>`;
+      html += `<p><strong>희망일:</strong> ${$('deliveryDate').value || '미선택'}</p>`;
+      if($('requests').value) html += `<p><strong>요청사항:</strong> ${$('requests').value}</p>`;
 
-                const productListString = data.products.join('<br>');
-                
-                const customerTypeMap = {
-                    'existing': '기존 고객 (기존 배송지)',
-                    'existing_new_address': '기존 고객 (다른 배송지)',
-                    'new': '신규 고객'
-                };
-                const deliveryMethodMap = {
-                    'delivery': '배송 요청',
-                    'pickup': '푸드릿지 창고 픽업'
-                };
+      $('orderSummaryContent').innerHTML = html;
+      $('orderModal').style.display = 'block';
+    }
 
-                const foodridgeEmailParams = {
-                    customer_type: customerTypeMap[data.customerType] || data.customerType,
-                    company_name: data.companyName,
-                    contact_person: data.contactPerson,
-                    phone_number: data.phoneNumber,
-                    customer_email: data.customerEmail,
-                    delivery_address: data.deliveryAddress,
-                    products: productListString,
-                    total_quantity: data.totalQuantity,
-                    delivery_method: deliveryMethodMap[data.deliveryMethod] || data.deliveryMethod,
-                    delivery_date: data.deliveryDate,
-                    requests: data.requests
-                };
+    function closeModal(){ $('orderModal').style.display = 'none'; }
 
-                emailjs.send(EMAILJS_SERVICE_ID, FOODRIDGE_TEMPLATE_ID, foodridgeEmailParams)
-                    .then(() => {
-                        const customerEmailParams = {
-                            to_email: data.customerEmail,
-                            company_name: data.companyName,
-                            contact_person: data.contactPerson,
-                        };
+    // Form submit
+    function handleSubmit(e){
+      e.preventDefault();
+      // Basic validation
+      const required = ['customerType','companyName','contactName','contactPhone','email','deliveryAddress','deliveryMethod','deliveryDate'];
+      let ok = true;
+      required.forEach(id=>{
+        const el = $(id);
+        if(!el || !String(el.value||'').trim()){ el && (el.style.borderColor='#ef4444'); ok=false; }
+        else { el.style.borderColor='#e2e8f0'; }
+      });
+      // At least one product
+      const products = [];
+      const P = [
+        {id:'5113', label:'[이천] 5113 캐나다 냉동 난백 (2kg×6)'},
+        {id:'5313', label:'[이천] 5313 캐나다 냉동 전란 (2kg×6)'},
+        {id:'5270', label:'[이천] 5270 캐나다 냉동 난황 (2kg×6)'},
+        {id:'5139', label:'[이천] 5139 캐나다 냉동 슈퍼휩 (1kg×12)'},
+        {id:'fr02001', label:'[안성] FR02001 SQIZ 9MM 코팅 스킨오프 감자 (2kg×6)'}
+      ];
+      P.forEach(p=>{
+        const cb = $('prod-'+p.id), q = parseQty(($('qty-'+p.id)||{}).value);
+        if(cb && cb.checked && q>0) products.push(`${p.label}: ${q}박스`);
+      });
+      if(!products.length){ alert('최소 1개 이상의 제품을 선택해주세요.'); ok=false; }
 
-                        emailjs.send(EMAILJS_SERVICE_ID, CUSTOMER_TEMPLATE_ID, customerEmailParams)
-                            .then(() => {
-                                showModal('제출 완료', '주문이 성공적으로 제출되었습니다.<br>담당자 이메일로 확인 메일이 발송되었습니다.');
-                                document.getElementById('orderForm').reset();
-                                calculateTotal();
-                                document.getElementById('addressSection').classList.add('hidden');
-                            }, (error) => {
-                                console.error('Customer Email Error:', error);
-                                showModal('제출 완료 (일부 오류)', '주문은 성공적으로 제출되었으나, 고객 확인 이메일 전송에 실패했습니다. EmailJS의 고객용 템플릿 ID를 확인해주세요.');
-                            })
-                            .finally(() => {
-                                submitButton.disabled = false;
-                                submitButton.textContent = '배송 요청서 제출';
-                            });
+      if(!ok){ alert('필수 항목을 모두 입력해주세요.'); return; }
 
-                    }, (error) => {
-                        console.error('Foodridge Email Error:', error);
-                        showModal('제출 실패', '오류가 발생하여 주문을 제출하지 못했습니다. 잠시 후 다시 시도해주세요. (EmailJS 설정 확인 필요)');
-                        submitButton.disabled = false;
-                        submitButton.textContent = '배송 요청서 제출';
-                    });
-            });
+      // Build params - 발주번호 자동생성하되 수정된 경우 사용자 입력값 사용
+      const icn = $('icnTotal').textContent.replace('박스','');
+      const asg = $('asgTotal').textContent.replace('박스','');
+      const total = $('grandTotal').textContent.replace('박스','');
+      
+      // 발주서 제출 시간 생성
+      const submitTime = new Date();
+      const submitTimeStr = `${submitTime.getFullYear()}-${String(submitTime.getMonth()+1).padStart(2,'0')}-${String(submitTime.getDate()).padStart(2,'0')} ${String(submitTime.getHours()).padStart(2,'0')}:${String(submitTime.getMinutes()).padStart(2,'0')}:${String(submitTime.getSeconds()).padStart(2,'0')}`;
+      
+      // 발주번호 처리 (자동생성되었지만 사용자가 수정했을 수 있음)
+      let orderNumber = $('orderNumber').value.trim();
+      if (!orderNumber) {
+        // 비어있다면 자동 생성
+        orderNumber = `F${String(submitTime.getMonth()+1).padStart(2,'0')}${String(submitTime.getDate()).padStart(2,'0')}-${String(submitTime.getHours()).padStart(2,'0')}${String(submitTime.getMinutes()).padStart(2,'0')}`;
+        $('orderNumber').value = orderNumber;
+      }
+      
+      const params = {
+        order_number: orderNumber,
+        customer_type: $('customerType').value,
+        company_name: $('companyName').value,
+        contact_person: $('contactName').value,
+        phone_number: $('contactPhone').value,
+        customer_email: $('email').value,
+        delivery_address: $('deliveryAddress').value,
+        products: products.join('<br>'),
+        icheon_quantity: icn,
+        anseong_quantity: asg,
+        total_quantity: total,
+        delivery_method: $('deliveryMethod').value,
+        delivery_date: $('deliveryDate').value,
+        requests: `${$('requests').value || '없음'}\n\n[발주서 제출시간: ${submitTimeStr}]`
+      };
+      // Plain text body (mailto fallback)
+      params.__plain =
+`[푸드릿지 발주서]
+발주번호: ${orderNumber}
+제출시간: ${submitTimeStr}
 
-            // Restrict past dates for delivery
-            const today = new Date();
-            today.setDate(today.getDate());
-            const yyyy = today.getFullYear();
-            const mm = String(today.getMonth() + 1).padStart(2, '0');
-            const dd = String(today.getDate()).padStart(2, '0');
-            document.getElementById('deliveryDate').setAttribute('min', `${yyyy}-${mm}-${dd}`);
-        });
-    </script>
+회사: ${params.company_name}
+담당: ${params.contact_person} / ${params.phone_number}
+이메일: ${params.customer_email}
+주소: ${params.delivery_address}
+
+제품:
+- ${products.join('\n- ')}
+
+이천: ${icn}박스, 안성: ${asg}박스, 총합: ${total}박스
+배송방법: ${params.delivery_method}
+희망일: ${params.delivery_date}
+요청사항: ${params.requests}`;
+
+      const btn = $('btnSubmit');
+      const prev = btn.textContent;
+      btn.disabled = true; btn.textContent = '전송 중...';
+
+      EmailClient.send(EMAILJS_SERVICE_ID, FOODRIDGE_TEMPLATE_ID, params)
+        .then(()=> EmailClient.send(EMAILJS_SERVICE_ID, CUSTOMER_TEMPLATE_ID, {
+          to_email: params.customer_email, 
+          company_name: params.company_name, 
+          contact_person: params.contact_person,
+          order_number: orderNumber,
+          submit_time: submitTimeStr
+        }))
+        .then(()=>{
+          alert('제출 완료! 푸드릿지 담당자에게 발주서가 전송되었으며, 고객님께 접수 확인 메일이 발송되었습니다.');
+          $('orderForm').reset();
+          updateTotals();
+        })
+        .catch((err)=>{
+          console.error('Email error', err);
+          alert('전송 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+        })
+        .finally(()=>{ btn.disabled=false; btn.textContent = prev; });
+    }
+
+    // Address required toggle (match UX from V2)
+    $('customerType').addEventListener('change', function(){
+      const addr = $('deliveryAddress');
+      if(this.value === 'existing-same'){
+        addr.removeAttribute('required');
+        $('addressGroup').style.opacity = .6;
+      } else {
+        addr.setAttribute('required','');
+        $('addressGroup').style.opacity = 1;
+      }
+    });
+
+    // Wire events
+    window.addEventListener('DOMContentLoaded', ()=>{
+      wireQtySync();
+      updateTotals(); // initial
+      // iOS: update on visibility change (when numeric keypad closes)
+      document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible') updateTotals(); });
+      $('btnReview').addEventListener('click', showOrderSummary, {passive:true});
+      $('modalClose').addEventListener('click', closeModal, {passive:true});
+      $('orderForm').addEventListener('submit', handleSubmit);
+    });
+    // Close modal on backdrop click
+    $('orderModal').addEventListener('click', (e)=>{ if(e.target.id==='orderModal') closeModal(); }, {passive:true});
+  </script>
 </body>
 </html>
