@@ -285,7 +285,7 @@
   <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
 
   <script>
-    // --- Email client wrapper (안정적인 버전으로 복원) ---
+    // --- Email client wrapper (원본 유지: mailto 폴백 제목은 기존과 동일) ---
     const EmailClient = {
       _ready:false,
       init(publicKey){
@@ -307,8 +307,8 @@
           return window.emailjs.send(serviceId, templateId, params);
         } else {
           console.log('EmailJS 실패, mailto 폴백 실행');
-          // Fallback: open mailto with composed body
           const to = encodeURIComponent('order@foodridge.co.kr');
+          // 폴백 제목은 기존 포맷 유지 (warehouse_tag 미사용)
           const subject = encodeURIComponent('[푸드릿지] 신규 발주서 제출 - ' + (params.order_number || ''));
           const body = encodeURIComponent(params.__plain || '발주 내역이 첨부됩니다.');
           window.location.href = `mailto:${to}?subject=${subject}&body=${body}`;
@@ -317,7 +317,7 @@
       }
     };
 
-    // --- Config (same as V2) ---
+    // --- Config ---
     const EMAILJS_PUBLIC_KEY = "uShz4QaVUzFOJMOZs";
     const EMAILJS_SERVICE_ID = "service_24b5nff";
     const FOODRIDGE_TEMPLATE_ID = "template_4wmwxm2";
@@ -370,17 +370,14 @@
         const cb = $('prod-'+id);
         const qty = $('qty-'+id);
         if(!cb || !qty) return;
-        // When checkbox toggled
         cb.addEventListener('change', ()=>{
           if(cb.checked && (!qty.value || parseQty(qty.value)===0)){ qty.value = '1'; }
           if(!cb.checked){ qty.value = ''; }
           updateTotals();
         }, {passive:true});
-        // When qty typed
         const onQtyChange = ()=>{
           const val = parseQty(qty.value);
           cb.checked = val>0;
-          // normalize to numeric (prevents iOS keeping leading zeros)
           qty.value = val>0 ? String(val) : '';
           updateTotals();
         };
@@ -455,23 +452,29 @@
 
       if(!ok){ alert('필수 항목을 모두 입력해주세요.'); return; }
 
-      // Build params - 발주번호 자동생성하되 수정된 경우 사용자 입력값 사용
+      // Build params
       const icn = $('icnTotal').textContent.replace('박스','');
       const asg = $('asgTotal').textContent.replace('박스','');
       const total = $('grandTotal').textContent.replace('박스','');
       
-      // 발주서 제출 시간 생성
+      // 제출 시간 & 발주번호
       const submitTime = new Date();
       const submitTimeStr = `${submitTime.getFullYear()}-${String(submitTime.getMonth()+1).padStart(2,'0')}-${String(submitTime.getDate()).padStart(2,'0')} ${String(submitTime.getHours()).padStart(2,'0')}:${String(submitTime.getMinutes()).padStart(2,'0')}:${String(submitTime.getSeconds()).padStart(2,'0')}`;
       
-      // 발주번호 처리 (자동생성되었지만 사용자가 수정했을 수 있음)
       let orderNumber = $('orderNumber').value.trim();
       if (!orderNumber) {
-        // 비어있다면 자동 생성
         orderNumber = `F${String(submitTime.getMonth()+1).padStart(2,'0')}${String(submitTime.getDate()).padStart(2,'0')}-${String(submitTime.getHours()).padStart(2,'0')}${String(submitTime.getMinutes()).padStart(2,'0')}`;
         $('orderNumber').value = orderNumber;
       }
-      
+
+      // === 추가: EmailJS 제목에서 사용할 창고 코드 태그 계산 ===
+      const hasICN = Number(icn) > 0;   // 이천(계란류)
+      const hasASG = Number(asg) > 0;   // 안성(SQIZ)
+      let warehouse_tag = '';
+      if (hasICN && hasASG) warehouse_tag = '[ICN+ASG]';
+      else if (hasICN)      warehouse_tag = '[ICN]';
+      else if (hasASG)      warehouse_tag = '[ASG]';
+
       const params = {
         order_number: orderNumber,
         customer_type: $('customerType').value,
@@ -486,8 +489,12 @@
         total_quantity: total,
         delivery_method: $('deliveryMethod').value,
         delivery_date: $('deliveryDate').value,
-        requests: `${$('requests').value || '없음'}\n\n[발주서 제출시간: ${submitTimeStr}]`
+        requests: `${$('requests').value || '없음'}\n\n[발주서 제출시간: ${submitTimeStr}]`,
+
+        // === 추가: EmailJS 템플릿 제목에서 사용할 태그 ===
+        warehouse_tag
       };
+
       // Plain text body (mailto fallback)
       params.__plain =
 `[푸드릿지 발주서]
@@ -505,7 +512,8 @@
 이천: ${icn}박스, 안성: ${asg}박스, 총합: ${total}박스
 배송방법: ${params.delivery_method}
 희망일: ${params.delivery_date}
-요청사항: ${params.requests}`;
+요청사항: ${params.requests}
+(참고) 창고 태그: ${warehouse_tag}`;
 
       const btn = $('btnSubmit');
       const prev = btn.textContent;
@@ -521,7 +529,10 @@
             company_name: params.company_name, 
             contact_person: params.contact_person,
             order_number: orderNumber,
-            submit_time: submitTimeStr
+            submit_time: submitTimeStr,
+
+            // 고객 확인 메일에도 동일 태그 전달
+            warehouse_tag
           });
         })
         .then((response)=>{
@@ -537,7 +548,7 @@
         .finally(()=>{ btn.disabled=false; btn.textContent = prev; });
     }
 
-    // Address required toggle (match UX from V2)
+    // Address required toggle
     $('customerType').addEventListener('change', function(){
       const addr = $('deliveryAddress');
       if(this.value === 'existing-same'){
@@ -553,7 +564,6 @@
     window.addEventListener('DOMContentLoaded', ()=>{
       wireQtySync();
       updateTotals(); // initial
-      // iOS: update on visibility change (when numeric keypad closes)
       document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible') updateTotals(); });
       $('btnReview').addEventListener('click', showOrderSummary, {passive:true});
       $('modalClose').addEventListener('click', closeModal, {passive:true});
@@ -564,4 +574,3 @@
   </script>
 </body>
 </html>
-
