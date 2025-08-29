@@ -326,8 +326,11 @@
     EmailClient.init(EMAILJS_PUBLIC_KEY);
 
     // Helpers
-    const $ = (id)=>document.getElementById(id);
-    const todayISO = ()=>{ const t=new Date(); return t.toISOString().split('T')[0]; };
+    const $ = (id) => document.getElementById(id);
+    const todayISO = () => {
+      const t = new Date();
+      return t.toISOString().split('T')[0];
+    };
 
     // Prevent past dates & 발주번호 자동 생성
     $('deliveryDate').min = todayISO();
@@ -344,49 +347,61 @@
     const ICN = ['5113','5313','5270','5139'];
     const ASG = ['fr02001'];
 
-    function parseQty(v){ const n = parseInt(String(v).replace(/[^0-9]/g,'')); return isNaN(n)?0:n; }
+    function parseQty(v) {
+      const n = parseInt(String(v).replace(/[^0-9]/g,''));
+      return isNaN(n) ? 0 : n;
+    }
 
-    function updateTotals(){
-      let icn=0, asg=0;
-      ICN.forEach(id=>{
-        const cb = $('prod-'+id);
-        const qty = parseQty(($('qty-'+id)||{}).value);
-        if(cb && cb.checked && qty>0) icn += qty;
+    function updateTotals() {
+      let icn = 0, asg = 0;
+      ICN.forEach(id => {
+        const cb = $('prod-' + id);
+        const qty = parseQty(($('qty-' + id) || {}).value);
+        if (cb && cb.checked && qty > 0) icn += qty;
       });
-      ASG.forEach(id=>{
-        const cb = $('prod-'+id);
-        const qty = parseQty(($('qty-'+id)||{}).value);
-        if(cb && cb.checked && qty>0) asg += qty;
+      ASG.forEach(id => {
+        const cb = $('prod-' + id);
+        const qty = parseQty(($('qty-' + id) || {}).value);
+        if (cb && cb.checked && qty > 0) asg += qty;
       });
       $('icnTotal').textContent = icn + '박스';
       $('asgTotal').textContent = asg + '박스';
-      $('grandTotal').textContent = (icn+asg) + '박스';
+      $('grandTotal').textContent = (icn + asg) + '박스';
     }
 
-    // Robust event wiring for mobile (input + change + keyup)
-    function wireQtySync(){
+    // Robust event wiring for mobile
+    function wireQtySync() {
       const all = [...ICN, ...ASG];
-      all.forEach(id=>{
-        const cb = $('prod-'+id);
-        const qty = $('qty-'+id);
-        if(!cb || !qty) return;
-        cb.addEventListener('change', ()=>{
-          if(cb.checked && (!qty.value || parseQty(qty.value)===0)){ qty.value = '1'; }
-          if(!cb.checked){ qty.value = ''; }
+      all.forEach(id => {
+        const cb = $('prod-' + id);
+        const qty = $('qty-' + id);
+        if (!cb || !qty) return;
+        
+        cb.addEventListener('change', () => {
+          if (cb.checked && (!qty.value || parseQty(qty.value) === 0)) {
+            qty.value = '1';
+          }
+          if (!cb.checked) {
+            qty.value = '';
+          }
           updateTotals();
-        }, {passive:true});
-        const onQtyChange = ()=>{
+        }, {passive: true});
+        
+        const onQtyChange = () => {
           const val = parseQty(qty.value);
-          cb.checked = val>0;
-          qty.value = val>0 ? String(val) : '';
+          cb.checked = val > 0;
+          qty.value = val > 0 ? String(val) : '';
           updateTotals();
         };
-        ['input','change','keyup','blur'].forEach(evt=>qty.addEventListener(evt, onQtyChange, {passive:true}));
+        
+        ['input', 'change', 'keyup', 'blur'].forEach(evt => 
+          qty.addEventListener(evt, onQtyChange, {passive: true})
+        );
       });
     }
 
     // Review modal
-    function showOrderSummary(){
+    function showOrderSummary() {
       let html = '';
       html += `<p><strong>발주번호:</strong> ${$('orderNumber').value || '자동 생성됩니다'}</p>`;
       html += `<p><strong>고객사:</strong> ${$('companyName').value}</p>`;
@@ -404,10 +419,12 @@
         {id:'5139', name:'캐나다 냉동 슈퍼휩 1kg×12팩', wh:'이천'},
         {id:'fr02001', name:'SQIZ 9MM 코팅 스킨오프 감자 2kg×6팩', wh:'안성'}
       ];
-      P.forEach(p=>{
-        const cb = $('prod-'+p.id);
-        const q = parseQty(($('qty-'+p.id)||{}).value);
-        if(cb && cb.checked && q>0){ list.push(`• [${p.wh}] ${p.id} - ${p.name}: <strong>${q}박스</strong>`); }
+      P.forEach(p => {
+        const cb = $('prod-' + p.id);
+        const q = parseQty(($('qty-' + p.id) || {}).value);
+        if (cb && cb.checked && q > 0) {
+          list.push(`• [${p.wh}] ${p.id} - ${p.name}: <strong>${q}박스</strong>`);
+        }
       });
       html += list.length ? `<div>${list.join('<br>')}</div>` : `<p style="color:#ef4444">선택된 제품이 없습니다.</p>`;
 
@@ -416,25 +433,33 @@
       const dmText = dm.options[dm.selectedIndex]?.text || '미선택';
       html += `<p><strong>배송방법:</strong> ${dmText}</p>`;
       html += `<p><strong>희망일:</strong> ${$('deliveryDate').value || '미선택'}</p>`;
-      if($('requests').value) html += `<p><strong>요청사항:</strong> ${$('requests').value}</p>`;
+      if ($('requests').value) html += `<p><strong>요청사항:</strong> ${$('requests').value}</p>`;
 
       $('orderSummaryContent').innerHTML = html;
       $('orderModal').style.display = 'block';
     }
 
-    function closeModal(){ $('orderModal').style.display = 'none'; }
+    function closeModal() {
+      $('orderModal').style.display = 'none';
+    }
 
     // Form submit
-    function handleSubmit(e){
+    function handleSubmit(e) {
       e.preventDefault();
+      
       // Basic validation
       const required = ['customerType','companyName','contactName','contactPhone','email','deliveryAddress','deliveryMethod','deliveryDate'];
       let ok = true;
-      required.forEach(id=>{
+      required.forEach(id => {
         const el = $(id);
-        if(!el || !String(el.value||'').trim()){ el && (el.style.borderColor='#ef4444'); ok=false; }
-        else { el.style.borderColor='#e2e8f0'; }
+        if (!el || !String(el.value || '').trim()) {
+          el && (el.style.borderColor = '#ef4444');
+          ok = false;
+        } else {
+          el.style.borderColor = '#e2e8f0';
+        }
       });
+      
       // At least one product
       const products = [];
       const P = [
@@ -444,13 +469,21 @@
         {id:'5139', label:'[이천] 5139 캐나다 냉동 슈퍼휩 (1kg×12)'},
         {id:'fr02001', label:'[안성] FR02001 SQIZ 9MM 코팅 스킨오프 감자 (2kg×6)'}
       ];
-      P.forEach(p=>{
-        const cb = $('prod-'+p.id), q = parseQty(($('qty-'+p.id)||{}).value);
-        if(cb && cb.checked && q>0) products.push(`${p.label}: ${q}박스`);
+      P.forEach(p => {
+        const cb = $('prod-' + p.id);
+        const q = parseQty(($('qty-' + p.id) || {}).value);
+        if (cb && cb.checked && q > 0) products.push(`${p.label}: ${q}박스`);
       });
-      if(!products.length){ alert('최소 1개 이상의 제품을 선택해주세요.'); ok=false; }
+      
+      if (!products.length) {
+        alert('최소 1개 이상의 제품을 선택해주세요.');
+        ok = false;
+      }
 
-      if(!ok){ alert('필수 항목을 모두 입력해주세요.'); return; }
+      if (!ok) {
+        alert('필수 항목을 모두 입력해주세요.');
+        return;
+      }
 
       // Build params
       const icn = $('icnTotal').textContent.replace('박스','');
@@ -517,7 +550,8 @@
 
       const btn = $('btnSubmit');
       const prev = btn.textContent;
-      btn.disabled = true; btn.textContent = '전송 중...';
+      btn.disabled = true;
+      btn.textContent = '전송 중...';
 
       console.log('이메일 전송 시작', params);
 
@@ -539,6 +573,7 @@
           console.log('고객 이메일 전송 성공:', response);
           alert('제출 완료! 푸드릿지 담당자에게 발주서가 전송되었으며, 고객님께 접수 확인 메일이 발송되었습니다.');
           $('orderForm').reset();
+          $('orderNumber').value = generateOrderNumber(); // 새 발주번호 생성
           updateTotals();
         })
         .catch((err)=>{
@@ -549,28 +584,33 @@
     }
 
     // Address required toggle
-    $('customerType').addEventListener('change', function(){
+    $('customerType').addEventListener('change', function() {
       const addr = $('deliveryAddress');
-      if(this.value === 'existing-same'){
+      if (this.value === 'existing-same') {
         addr.removeAttribute('required');
-        $('addressGroup').style.opacity = .6;
+        $('addressGroup').style.opacity = 0.6;
       } else {
-        addr.setAttribute('required','');
+        addr.setAttribute('required', '');
         $('addressGroup').style.opacity = 1;
       }
     });
 
     // Wire events
-    window.addEventListener('DOMContentLoaded', ()=>{
+    window.addEventListener('DOMContentLoaded', () => {
       wireQtySync();
       updateTotals(); // initial
-      document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible') updateTotals(); });
-      $('btnReview').addEventListener('click', showOrderSummary, {passive:true});
-      $('modalClose').addEventListener('click', closeModal, {passive:true});
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') updateTotals();
+      });
+      $('btnReview').addEventListener('click', showOrderSummary, {passive: true});
+      $('modalClose').addEventListener('click', closeModal, {passive: true});
       $('orderForm').addEventListener('submit', handleSubmit);
     });
+
     // Close modal on backdrop click
-    $('orderModal').addEventListener('click', (e)=>{ if(e.target.id==='orderModal') closeModal(); }, {passive:true});
+    $('orderModal').addEventListener('click', (e) => {
+      if (e.target.id === 'orderModal') closeModal();
+    }, {passive: true});
   </script>
 </body>
 </html>
