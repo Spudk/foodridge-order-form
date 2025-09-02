@@ -30,9 +30,6 @@
     .warehouse-section { background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:12px; margin-bottom:10px; }
     .warehouse-title { font-weight:800; color:#0f172a; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; }
     .warehouse-code { font-size: .75rem; padding: 2px 8px; border-radius:9999px; background:#10b981; color:#fff; font-weight:800; }
-    .warehouse-tax { font-size: .7rem; padding: 2px 6px; border-radius:4px; font-weight:600; }
-    .tax-exempt { background:#f59e0b; color:#fff; }
-    .tax-inclusive { background:#3b82f6; color:#fff; }
     .product-item { display:flex; align-items:center; gap:10px; background:#fff; border-radius:10px; padding:10px; margin-top:8px; box-shadow: 0 1px 3px rgba(2,6,23,.06); }
     .product-item input[type="checkbox"] { width:22px; height:22px; accent-color:#22c55e; }
     .product-info { flex:1; min-width:0; }
@@ -66,8 +63,8 @@
       .summary-grid { grid-template-columns: 1fr; }
       .total-summary { grid-column: span 1; }
     }
-    /* iOS zoom prevention on inputs */
     input, select, textarea { font-size:16px; }
+    .hidden { display:none; }
   </style>
 </head>
 <body>
@@ -241,12 +238,20 @@
             <input type="date" id="deliveryDate" required>
           </div>
 
+          <!-- 출고 방식: 안성창고 + 배송요청 시에만 표시 -->
+          <div class="form-group hidden" id="requestTypeGroup">
+            <label>출고 방식 (안성창고 + 배송 요청 시)</label>
+            <select id="requestType">
+              <option value="팔레트 출고" selected>팔레트 출고</option>
+              <option value="수작업 출고">수작업 출고</option>
+            </select>
+          </div>
+
           <div class="form-group">
             <label>요청사항</label>
             <textarea id="requests" rows="2" placeholder="예: 10~12시 희망, 기사님 연락 요망 등"></textarea>
           </div>
 
-          <!-- 배송 안내사항 -->
           <div class="delivery-notice">
             <div style="display:flex; align-items:flex-start; gap:8px;">
               <span class="delivery-notice-icon">⚠️</span>
@@ -281,11 +286,11 @@
     </div>
   </div>
 
-  <!-- EmailJS - 안정적인 버전으로 롤백 -->
+  <!-- EmailJS -->
   <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
 
   <script>
-    // --- Email client wrapper (원본 유지: mailto 폴백 제목은 기존과 동일) ---
+    // --- Email client wrapper ---
     const EmailClient = {
       _ready:false,
       init(publicKey){
@@ -308,7 +313,6 @@
         } else {
           console.log('EmailJS 실패, mailto 폴백 실행');
           const to = encodeURIComponent('order@foodridge.co.kr');
-          // 폴백 제목은 기존 포맷 유지 (warehouse_tag 미사용)
           const subject = encodeURIComponent('[푸드릿지] 신규 발주서 제출 - ' + (params.order_number || ''));
           const body = encodeURIComponent(params.__plain || '발주 내역이 첨부됩니다.');
           window.location.href = `mailto:${to}?subject=${subject}&body=${body}`;
@@ -332,16 +336,12 @@
       return t.toISOString().split('T')[0];
     };
 
-    // Prevent past dates & 발주번호 자동 생성
+    // Date min & 발주번호
     $('deliveryDate').min = todayISO();
-    
-    // 페이지 로드 시 발주번호 자동 생성
     function generateOrderNumber() {
       const now = new Date();
       return `F${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}-${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}`;
     }
-    
-    // 초기 발주번호 설정
     $('orderNumber').value = generateOrderNumber();
 
     const ICN = ['5113','5313','5270','5139'];
@@ -350,6 +350,15 @@
     function parseQty(v) {
       const n = parseInt(String(v).replace(/[^0-9]/g,''));
       return isNaN(n) ? 0 : n;
+    }
+
+    function hasASGSelected(){
+      // 안성창고 품목 중 하나라도 수량>0 && 체크되어 있으면 true
+      return ASG.some(id => {
+        const cb = $('prod-' + id);
+        const qty = parseQty(($('qty-' + id) || {}).value);
+        return cb && cb.checked && qty > 0;
+      });
     }
 
     function updateTotals() {
@@ -367,9 +376,10 @@
       $('icnTotal').textContent = icn + '박스';
       $('asgTotal').textContent = asg + '박스';
       $('grandTotal').textContent = (icn + asg) + '박스';
+      // 제품 선택 변경에 따라 출고방식 토글도 갱신
+      toggleRequestType();
     }
 
-    // Robust event wiring for mobile
     function wireQtySync() {
       const all = [...ICN, ...ASG];
       all.forEach(id => {
@@ -378,12 +388,8 @@
         if (!cb || !qty) return;
         
         cb.addEventListener('change', () => {
-          if (cb.checked && (!qty.value || parseQty(qty.value) === 0)) {
-            qty.value = '1';
-          }
-          if (!cb.checked) {
-            qty.value = '';
-          }
+          if (cb.checked && (!qty.value || parseQty(qty.value) === 0)) qty.value = '1';
+          if (!cb.checked) qty.value = '';
           updateTotals();
         }, {passive: true});
         
@@ -393,11 +399,24 @@
           qty.value = val > 0 ? String(val) : '';
           updateTotals();
         };
-        
-        ['input', 'change', 'keyup', 'blur'].forEach(evt => 
-          qty.addEventListener(evt, onQtyChange, {passive: true})
+        ['input','change','keyup','blur'].forEach(evt =>
+          qty.addEventListener(evt, onQtyChange, {passive:true})
         );
       });
+    }
+
+    // 배송방법 & 안성창고 선택 여부에 따라 출고방식 표시
+    function toggleRequestType() {
+      const dm = $('deliveryMethod').value;
+      const group = $('requestTypeGroup');
+      const sel = $('requestType');
+      if (dm === 'delivery' && hasASGSelected()) {
+        group.classList.remove('hidden');
+        sel.value = '팔레트 출고'; // 기본값
+      } else {
+        group.classList.add('hidden');
+        sel.value = ''; // 숨길 때 리셋
+      }
     }
 
     // Review modal
@@ -422,9 +441,7 @@
       P.forEach(p => {
         const cb = $('prod-' + p.id);
         const q = parseQty(($('qty-' + p.id) || {}).value);
-        if (cb && cb.checked && q > 0) {
-          list.push(`• [${p.wh}] ${p.id} - ${p.name}: <strong>${q}박스</strong>`);
-        }
+        if (cb && cb.checked && q > 0) list.push(`• [${p.wh}] ${p.id} - ${p.name}: <strong>${q}박스</strong>`);
       });
       html += list.length ? `<div>${list.join('<br>')}</div>` : `<p style="color:#ef4444">선택된 제품이 없습니다.</p>`;
 
@@ -433,6 +450,10 @@
       const dmText = dm.options[dm.selectedIndex]?.text || '미선택';
       html += `<p><strong>배송방법:</strong> ${dmText}</p>`;
       html += `<p><strong>희망일:</strong> ${$('deliveryDate').value || '미선택'}</p>`;
+      if ($('deliveryMethod').value === 'delivery' && hasASGSelected()) {
+        const rt = $('requestType').value || '팔레트 출고';
+        html += `<p><strong>출고 방식:</strong> ${rt}</p>`;
+      }
       if ($('requests').value) html += `<p><strong>요청사항:</strong> ${$('requests').value}</p>`;
 
       $('orderSummaryContent').innerHTML = html;
@@ -490,7 +511,6 @@
       const asg = $('asgTotal').textContent.replace('박스','');
       const total = $('grandTotal').textContent.replace('박스','');
       
-      // 제출 시간 & 발주번호
       const submitTime = new Date();
       const submitTimeStr = `${submitTime.getFullYear()}-${String(submitTime.getMonth()+1).padStart(2,'0')}-${String(submitTime.getDate()).padStart(2,'0')} ${String(submitTime.getHours()).padStart(2,'0')}:${String(submitTime.getMinutes()).padStart(2,'0')}:${String(submitTime.getSeconds()).padStart(2,'0')}`;
       
@@ -500,13 +520,27 @@
         $('orderNumber').value = orderNumber;
       }
 
-      // === 추가: EmailJS 제목에서 사용할 창고 코드 태그 계산 ===
-      const hasICN = Number(icn) > 0;   // 이천(계란류)
-      const hasASG = Number(asg) > 0;   // 안성(SQIZ)
+      // 창고 태그
+      const hasICN = Number(icn) > 0;
+      const hasASG = Number(asg) > 0;
       let warehouse_tag = '';
       if (hasICN && hasASG) warehouse_tag = '[ICN+ASG]';
       else if (hasICN)      warehouse_tag = '[ICN]';
       else if (hasASG)      warehouse_tag = '[ASG]';
+
+      // 출고 방식: 조건 충족 시에만 포함
+      const deliveryMethodVal = $('deliveryMethod').value;
+      const requestTypeVal = (deliveryMethodVal === 'delivery' && hasASGSelected())
+        ? ($('requestType').value || '팔레트 출고')
+        : '';
+
+      const combinedRequests = (deliveryMethodVal === 'delivery' && hasASGSelected())
+        ? `출고 방식: ${requestTypeVal}${$('requests').value ? '\\n추가 요청: ' + $('requests').value : ''}`
+        : ($('requests').value || '없음');
+
+      // Email 제목(관리자용/고객용) 파라미터에 발주번호 포함
+      const adminSubject = `[푸드릿지] ${warehouse_tag ? warehouse_tag + ' ' : ''}신규 발주서 - ${orderNumber}`;
+      const customerSubject = `[푸드릿지] 발주 접수 확인 - ${orderNumber}`;
 
       const params = {
         order_number: orderNumber,
@@ -520,12 +554,14 @@
         icheon_quantity: icn,
         anseong_quantity: asg,
         total_quantity: total,
-        delivery_method: $('deliveryMethod').value,
+        delivery_method: deliveryMethodVal,
         delivery_date: $('deliveryDate').value,
-        requests: `${$('requests').value || '없음'}\n\n[발주서 제출시간: ${submitTimeStr}]`,
-
-        // === 추가: EmailJS 템플릿 제목에서 사용할 태그 ===
-        warehouse_tag
+        requests: `${combinedRequests}\n\n[발주서 제출시간: ${submitTimeStr}]`,
+        request_type: requestTypeVal,
+        warehouse_tag,
+        // 제목 변수 추가 (EmailJS 템플릿에서 사용)
+        email_subject: adminSubject,
+        customer_email_subject: customerSubject
       };
 
       // Plain text body (mailto fallback)
@@ -545,7 +581,7 @@
 이천: ${icn}박스, 안성: ${asg}박스, 총합: ${total}박스
 배송방법: ${params.delivery_method}
 희망일: ${params.delivery_date}
-요청사항: ${params.requests}
+${(deliveryMethodVal === 'delivery' && hasASGSelected()) ? `출고 방식: ${requestTypeVal}\n` : ''}요청사항: ${$('requests').value || '없음'}
 (참고) 창고 태그: ${warehouse_tag}`;
 
       const btn = $('btnSubmit');
@@ -564,17 +600,17 @@
             contact_person: params.contact_person,
             order_number: orderNumber,
             submit_time: submitTimeStr,
-
-            // 고객 확인 메일에도 동일 태그 전달
-            warehouse_tag
+            warehouse_tag,
+            request_type: requestTypeVal,
+            email_subject: customerSubject
           });
         })
         .then((response)=>{
           console.log('고객 이메일 전송 성공:', response);
           alert('제출 완료! 푸드릿지 담당자에게 발주서가 전송되었으며, 고객님께 접수 확인 메일이 발송되었습니다.');
           $('orderForm').reset();
-          $('orderNumber').value = generateOrderNumber(); // 새 발주번호 생성
-          updateTotals();
+          $('orderNumber').value = generateOrderNumber();
+          updateTotals(); // 내부에서 토글도 같이 반영
         })
         .catch((err)=>{
           console.error('Email error 상세:', err);
@@ -598,10 +634,12 @@
     // Wire events
     window.addEventListener('DOMContentLoaded', () => {
       wireQtySync();
-      updateTotals(); // initial
+      updateTotals();
+      toggleRequestType(); // 초기 반영
       document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible') updateTotals();
       });
+      $('deliveryMethod').addEventListener('change', toggleRequestType, {passive:true});
       $('btnReview').addEventListener('click', showOrderSummary, {passive: true});
       $('modalClose').addEventListener('click', closeModal, {passive: true});
       $('orderForm').addEventListener('submit', handleSubmit);
