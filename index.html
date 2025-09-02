@@ -52,7 +52,6 @@
     .delivery-notice-icon { font-size:1.2rem; }
     .delivery-notice-title { font-weight:700; color:#92400e; font-size:.9rem; margin-bottom:6px; }
     .delivery-notice-content { color:#92400e; font-size:.85rem; line-height:1.4; }
-    /* Modal */
     .modal { display:none; position:fixed; inset:0; z-index:1000; background:rgba(0,0,0,.5); }
     .modal-content { width:min(92%, 520px); max-height:82vh; overflow:auto; background:#fff; margin: 7vh auto; border-radius:16px; padding:18px; }
     .modal-header { display:flex; align-items:center; justify-content:space-between; padding-bottom:10px; border-bottom:1px solid #e2e8f0; }
@@ -194,7 +193,8 @@
                 <div class="product-name">SQIZ 9MM 코팅 스킨오프 감자 2kg×6팩</div>
               </div>
               <div class="quantity">
-                <input type="number" class="quantity-input" id="qty-fr02001" min="0" inputmode="numeric" placeholder="0">
+                <!-- ⬇ 변경: step=40 (스피너 ↑는 40단위), placeholder 안내 -->
+                <input type="number" class="quantity-input" id="qty-fr02001" min="0" step="40" inputmode="numeric" placeholder="0 (↑ 40단위 / ↓ 1단위)">
                 <span>박스</span>
               </div>
             </div>
@@ -238,7 +238,7 @@
             <input type="date" id="deliveryDate" required>
           </div>
 
-          <!-- 출고 방식: 안성창고 + 배송요청 시에만 표시 -->
+          <!-- 안성 + 배송요청일 때만 -->
           <div class="form-group hidden" id="requestTypeGroup">
             <label>출고 방식 (안성창고 + 배송 요청 시)</label>
             <select id="requestType">
@@ -275,7 +275,7 @@
     </div>
   </div>
 
-  <!-- 주문 확인 모달 -->
+  <!-- 모달 -->
   <div id="orderModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
     <div class="modal-content">
       <div class="modal-header">
@@ -286,11 +286,9 @@
     </div>
   </div>
 
-  <!-- EmailJS -->
   <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
 
   <script>
-    // --- Email client wrapper ---
     const EmailClient = {
       _ready:false,
       init(publicKey){
@@ -298,20 +296,15 @@
           if(window.emailjs && typeof window.emailjs.init === 'function'){
             window.emailjs.init(publicKey);
             this._ready = true;
-            console.log('EmailJS 초기화 성공');
           } else {
             console.warn('EmailJS not available; will fall back to mailto.');
           }
-        }catch(e){ 
-          console.warn('EmailJS init failed:', e); 
-        }
+        }catch(e){ console.warn('EmailJS init failed:', e); }
       },
       send(serviceId, templateId, params){
         if(this._ready && window.emailjs && typeof window.emailjs.send === 'function'){
-          console.log('EmailJS 전송 시도:', params);
           return window.emailjs.send(serviceId, templateId, params);
         } else {
-          console.log('EmailJS 실패, mailto 폴백 실행');
           const to = encodeURIComponent('order@foodridge.co.kr');
           const subject = encodeURIComponent('[푸드릿지] 신규 발주서 제출 - ' + (params.order_number || ''));
           const body = encodeURIComponent(params.__plain || '발주 내역이 첨부됩니다.');
@@ -321,22 +314,15 @@
       }
     };
 
-    // --- Config ---
     const EMAILJS_PUBLIC_KEY = "uShz4QaVUzFOJMOZs";
     const EMAILJS_SERVICE_ID = "service_24b5nff";
     const FOODRIDGE_TEMPLATE_ID = "template_4wmwxm2";
     const CUSTOMER_TEMPLATE_ID = "template_fg3wre7";
-
     EmailClient.init(EMAILJS_PUBLIC_KEY);
 
-    // Helpers
     const $ = (id) => document.getElementById(id);
-    const todayISO = () => {
-      const t = new Date();
-      return t.toISOString().split('T')[0];
-    };
+    const todayISO = () => (new Date()).toISOString().split('T')[0];
 
-    // Date min & 발주번호
     $('deliveryDate').min = todayISO();
     function generateOrderNumber() {
       const now = new Date();
@@ -348,12 +334,11 @@
     const ASG = ['fr02001'];
 
     function parseQty(v) {
-      const n = parseInt(String(v).replace(/[^0-9]/g,''));
+      const n = parseInt(String(v).replace(/[^0-9]/g,''), 10);
       return isNaN(n) ? 0 : n;
     }
 
     function hasASGSelected(){
-      // 안성창고 품목 중 하나라도 수량>0 && 체크되어 있으면 true
       return ASG.some(id => {
         const cb = $('prod-' + id);
         const qty = parseQty(($('qty-' + id) || {}).value);
@@ -376,7 +361,6 @@
       $('icnTotal').textContent = icn + '박스';
       $('asgTotal').textContent = asg + '박스';
       $('grandTotal').textContent = (icn + asg) + '박스';
-      // 제품 선택 변경에 따라 출고방식 토글도 갱신
       toggleRequestType();
     }
 
@@ -386,40 +370,109 @@
         const cb = $('prod-' + id);
         const qty = $('qty-' + id);
         if (!cb || !qty) return;
-        
+
         cb.addEventListener('change', () => {
-          if (cb.checked && (!qty.value || parseQty(qty.value) === 0)) qty.value = '1';
-          if (!cb.checked) qty.value = '';
+          if (cb.checked) {
+            // ⬇ 변경: ASG는 기본 40, 그 외는 1
+            const isASG = ASG.includes(id);
+            const defaultVal = isASG ? 40 : 1;
+            if (!qty.value || parseQty(qty.value) === 0) qty.value = String(defaultVal);
+          } else {
+            qty.value = '';
+          }
           updateTotals();
         }, {passive: true});
-        
+
         const onQtyChange = () => {
           const val = parseQty(qty.value);
           cb.checked = val > 0;
           qty.value = val > 0 ? String(val) : '';
           updateTotals();
         };
-        ['input','change','keyup','blur'].forEach(evt =>
-          qty.addEventListener(evt, onQtyChange, {passive:true})
-        );
+        ['input','change','keyup','blur'].forEach(evt => qty.addEventListener(evt, onQtyChange, {passive:true}));
       });
     }
 
-    // 배송방법 & 안성창고 선택 여부에 따라 출고방식 표시
+    // ⬇ 추가: ASG 입력 제어 (↑은 40단위, ↓는 1단위, 수기는 자유)
+    function applyASGStepSmart() {
+      ASG.forEach(id => {
+        const qty = $('qty-' + id);
+        if (!qty) return;
+
+        qty.setAttribute('min','0');
+        qty.setAttribute('step','40'); // 스피너 ↑ 기본 40단위 보장
+        qty.setAttribute('inputmode','numeric');
+        qty.placeholder = '0 (↑ 40단위 / ↓ 1단위)';
+
+        let last = parseQty(qty.value);
+
+        qty.addEventListener('focus', () => { last = parseQty(qty.value); });
+
+        // 키보드 ↑/↓ 직접 제어
+        qty.addEventListener('keydown', (e) => {
+          let current = parseQty(qty.value);
+          if (isNaN(current)) current = 0;
+
+          if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            const next = Math.max(40, (Math.floor(current / 40) + 1) * 40);
+            qty.value = String(next);
+            last = next;
+            qty.dispatchEvent(new Event('input', {bubbles:true}));
+          } else if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            const next = Math.max(0, current - 1);
+            qty.value = String(next);
+            last = next;
+            qty.dispatchEvent(new Event('input', {bubbles:true}));
+          }
+        });
+
+        // 스피너 클릭/휠 등 방향 감지해서 스냅 (수기 입력은 건드리지 않음)
+        qty.addEventListener('input', (e) => {
+          const inputType = e.inputType || '';
+          const isTyping = inputType.startsWith('insertText') || inputType.startsWith('delete');
+
+          let current = parseQty(qty.value);
+          if (isTyping) {
+            // 수기 입력 자유
+            last = current;
+            return;
+          }
+
+          if (current > last) {
+            // 증가 → 다음 40배수로 스냅
+            const snapped = Math.max(40, Math.ceil(current / 40) * 40);
+            if (snapped !== current) {
+              qty.value = String(snapped);
+              current = snapped;
+            }
+          } else if (current < last) {
+            // 감소 → 1박스씩
+            const snapped = Math.max(0, last - 1);
+            if (snapped !== current) {
+              qty.value = String(snapped);
+              current = snapped;
+            }
+          }
+          last = current;
+        });
+      });
+    }
+
     function toggleRequestType() {
       const dm = $('deliveryMethod').value;
       const group = $('requestTypeGroup');
       const sel = $('requestType');
       if (dm === 'delivery' && hasASGSelected()) {
         group.classList.remove('hidden');
-        sel.value = '팔레트 출고'; // 기본값
+        sel.value = '팔레트 출고';
       } else {
         group.classList.add('hidden');
-        sel.value = ''; // 숨길 때 리셋
+        sel.value = '';
       }
     }
 
-    // Review modal
     function showOrderSummary() {
       let html = '';
       html += `<p><strong>발주번호:</strong> ${$('orderNumber').value || '자동 생성됩니다'}</p>`;
@@ -441,7 +494,9 @@
       P.forEach(p => {
         const cb = $('prod-' + p.id);
         const q = parseQty(($('qty-' + p.id) || {}).value);
-        if (cb && cb.checked && q > 0) list.push(`• [${p.wh}] ${p.id} - ${p.name}: <strong>${q}박스</strong>`);
+        if (cb && cb.checked && q > 0) {
+          list.push(`• [${p.wh}] ${p.id} - ${p.name}: <strong>${q}박스</strong>`);
+        }
       });
       html += list.length ? `<div>${list.join('<br>')}</div>` : `<p style="color:#ef4444">선택된 제품이 없습니다.</p>`;
 
@@ -460,15 +515,10 @@
       $('orderModal').style.display = 'block';
     }
 
-    function closeModal() {
-      $('orderModal').style.display = 'none';
-    }
+    function closeModal() { $('orderModal').style.display = 'none'; }
 
-    // Form submit
     function handleSubmit(e) {
       e.preventDefault();
-      
-      // Basic validation
       const required = ['customerType','companyName','contactName','contactPhone','email','deliveryAddress','deliveryMethod','deliveryDate'];
       let ok = true;
       required.forEach(id => {
@@ -480,8 +530,7 @@
           el.style.borderColor = '#e2e8f0';
         }
       });
-      
-      // At least one product
+
       const products = [];
       const P = [
         {id:'5113', label:'[이천] 5113 캐나다 냉동 난백 (2kg×6)'},
@@ -495,32 +544,22 @@
         const q = parseQty(($('qty-' + p.id) || {}).value);
         if (cb && cb.checked && q > 0) products.push(`${p.label}: ${q}박스`);
       });
-      
-      if (!products.length) {
-        alert('최소 1개 이상의 제품을 선택해주세요.');
-        ok = false;
-      }
+      if (!products.length) { alert('최소 1개 이상의 제품을 선택해주세요.'); ok = false; }
+      if (!ok) { alert('필수 항목을 모두 입력해주세요.'); return; }
 
-      if (!ok) {
-        alert('필수 항목을 모두 입력해주세요.');
-        return;
-      }
-
-      // Build params
       const icn = $('icnTotal').textContent.replace('박스','');
       const asg = $('asgTotal').textContent.replace('박스','');
       const total = $('grandTotal').textContent.replace('박스','');
-      
+
       const submitTime = new Date();
       const submitTimeStr = `${submitTime.getFullYear()}-${String(submitTime.getMonth()+1).padStart(2,'0')}-${String(submitTime.getDate()).padStart(2,'0')} ${String(submitTime.getHours()).padStart(2,'0')}:${String(submitTime.getMinutes()).padStart(2,'0')}:${String(submitTime.getSeconds()).padStart(2,'0')}`;
-      
+
       let orderNumber = $('orderNumber').value.trim();
       if (!orderNumber) {
         orderNumber = `F${String(submitTime.getMonth()+1).padStart(2,'0')}${String(submitTime.getDate()).padStart(2,'0')}-${String(submitTime.getHours()).padStart(2,'0')}${String(submitTime.getMinutes()).padStart(2,'0')}`;
         $('orderNumber').value = orderNumber;
       }
 
-      // 창고 태그
       const hasICN = Number(icn) > 0;
       const hasASG = Number(asg) > 0;
       let warehouse_tag = '';
@@ -528,7 +567,6 @@
       else if (hasICN)      warehouse_tag = '[ICN]';
       else if (hasASG)      warehouse_tag = '[ASG]';
 
-      // 출고 방식: 조건 충족 시에만 포함
       const deliveryMethodVal = $('deliveryMethod').value;
       const requestTypeVal = (deliveryMethodVal === 'delivery' && hasASGSelected())
         ? ($('requestType').value || '팔레트 출고')
@@ -538,7 +576,6 @@
         ? `출고 방식: ${requestTypeVal}${$('requests').value ? '\\n추가 요청: ' + $('requests').value : ''}`
         : ($('requests').value || '없음');
 
-      // Email 제목(관리자용/고객용) 파라미터에 발주번호 포함
       const adminSubject = `[푸드릿지] ${warehouse_tag ? warehouse_tag + ' ' : ''}신규 발주서 - ${orderNumber}`;
       const customerSubject = `[푸드릿지] 발주 접수 확인 - ${orderNumber}`;
 
@@ -559,12 +596,10 @@
         requests: `${combinedRequests}\n\n[발주서 제출시간: ${submitTimeStr}]`,
         request_type: requestTypeVal,
         warehouse_tag,
-        // 제목 변수 추가 (EmailJS 템플릿에서 사용)
         email_subject: adminSubject,
         customer_email_subject: customerSubject
       };
 
-      // Plain text body (mailto fallback)
       params.__plain =
 `[푸드릿지 발주서]
 발주번호: ${orderNumber}
@@ -589,12 +624,8 @@ ${(deliveryMethodVal === 'delivery' && hasASGSelected()) ? `출고 방식: ${req
       btn.disabled = true;
       btn.textContent = '전송 중...';
 
-      console.log('이메일 전송 시작', params);
-
       EmailClient.send(EMAILJS_SERVICE_ID, FOODRIDGE_TEMPLATE_ID, params)
-        .then((response)=> {
-          console.log('푸드릿지 이메일 전송 성공:', response);
-          return EmailClient.send(EMAILJS_SERVICE_ID, CUSTOMER_TEMPLATE_ID, {
+        .then(() => EmailClient.send(EMAILJS_SERVICE_ID, CUSTOMER_TEMPLATE_ID, {
             to_email: params.customer_email, 
             company_name: params.company_name, 
             contact_person: params.contact_person,
@@ -603,23 +634,17 @@ ${(deliveryMethodVal === 'delivery' && hasASGSelected()) ? `출고 방식: ${req
             warehouse_tag,
             request_type: requestTypeVal,
             email_subject: customerSubject
-          });
-        })
-        .then((response)=>{
-          console.log('고객 이메일 전송 성공:', response);
+        }))
+        .then(() => {
           alert('제출 완료! 푸드릿지 담당자에게 발주서가 전송되었으며, 고객님께 접수 확인 메일이 발송되었습니다.');
           $('orderForm').reset();
           $('orderNumber').value = generateOrderNumber();
-          updateTotals(); // 내부에서 토글도 같이 반영
+          updateTotals();
         })
-        .catch((err)=>{
-          console.error('Email error 상세:', err);
-          alert(`전송 중 오류가 발생했습니다: ${err.text || err.message || '알 수 없는 오류'}\n\n잠시 후 다시 시도해주세요.`);
-        })
+        .catch((err)=>{ alert(`전송 중 오류가 발생했습니다: ${err?.text || err?.message || '알 수 없는 오류'}`); })
         .finally(()=>{ btn.disabled=false; btn.textContent = prev; });
     }
 
-    // Address required toggle
     $('customerType').addEventListener('change', function() {
       const addr = $('deliveryAddress');
       if (this.value === 'existing-same') {
@@ -631,11 +656,11 @@ ${(deliveryMethodVal === 'delivery' && hasASGSelected()) ? `출고 방식: ${req
       }
     });
 
-    // Wire events
     window.addEventListener('DOMContentLoaded', () => {
       wireQtySync();
+      applyASGStepSmart(); // ⬅ 추가 호출
       updateTotals();
-      toggleRequestType(); // 초기 반영
+      toggleRequestType();
       document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible') updateTotals();
       });
@@ -643,12 +668,10 @@ ${(deliveryMethodVal === 'delivery' && hasASGSelected()) ? `출고 방식: ${req
       $('btnReview').addEventListener('click', showOrderSummary, {passive: true});
       $('modalClose').addEventListener('click', closeModal, {passive: true});
       $('orderForm').addEventListener('submit', handleSubmit);
+      $('orderModal').addEventListener('click', (e) => {
+        if (e.target.id === 'orderModal') closeModal();
+      }, {passive: true});
     });
-
-    // Close modal on backdrop click
-    $('orderModal').addEventListener('click', (e) => {
-      if (e.target.id === 'orderModal') closeModal();
-    }, {passive: true});
   </script>
 </body>
 </html>
