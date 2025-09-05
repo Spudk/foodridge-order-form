@@ -626,14 +626,23 @@ ${(deliveryMethodVal === 'delivery' && hasASGSelected()) ? `출고 방식: ${req
 
       EmailClient.send(EMAILJS_SERVICE_ID, FOODRIDGE_TEMPLATE_ID, params)
         .then(() => EmailClient.send(EMAILJS_SERVICE_ID, CUSTOMER_TEMPLATE_ID, {
-            to_email: params.customer_email, 
-            company_name: params.company_name, 
-            contact_person: params.contact_person,
-            order_number: orderNumber,
-            submit_time: submitTimeStr,
-            warehouse_tag,
-            request_type: requestTypeVal,
-            email_subject: customerSubject
+    to_email: params.customer_email, 
+    company_name: params.company_name, 
+    contact_person: params.contact_person,
+    customer_email: params.customer_email,
+    customer_type: params.customer_type,
+    phone_number: params.phone_number,
+    delivery_address: params.delivery_address,
+    products: params.products,              
+    total_quantity: params.total_quantity,  
+    delivery_method: params.delivery_method, 
+    delivery_date: params.delivery_date,    
+    requests: params.requests,              
+    order_number: orderNumber,
+    submit_time: submitTimeStr,
+    warehouse_tag,
+    request_type: requestTypeVal,
+    email_subject: customerSubject
         }))
         .then(() => {
           alert('제출 완료! 푸드릿지 담당자에게 발주서가 전송되었으며, 고객님께 접수 확인 메일이 발송되었습니다.');
@@ -675,3 +684,4 @@ ${(deliveryMethodVal === 'delivery' && hasASGSelected()) ? `출고 방식: ${req
   </script>
 </body>
 </html>
+
