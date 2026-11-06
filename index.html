@@ -211,13 +211,13 @@
             </div>
 
             <div class="product-item">
-              <input type="checkbox" id="prod-fr02002">
+              <input type="checkbox" id="prod-fr02003">
               <div class="product-info">
-                <div class="product-code">FR02002</div>
+                <div class="product-code">FR02003</div>
                 <div class="product-name">SQIZ 7MM 코팅 스킨오프 감자 2kg×6팩</div>
               </div>
               <div class="quantity">
-                <input type="number" class="quantity-input" id="qty-fr02002" min="0" step="40" inputmode="numeric" placeholder="0 (↑ 40단위)">
+                <input type="number" class="quantity-input" id="qty-fr02003" min="0" step="40" inputmode="numeric" placeholder="0 (↑ 40단위)">
                 <span>박스</span>
               </div>
             </div>
@@ -395,9 +395,9 @@
     $('orderNumber').value = generateOrderNumber();
 
     const ICN = ['5113','5313','5270','5139'];
-    const ASG = ['fr02001', 'fr02002', 'fr03002', 'fr03001', '4001'];
+    const ASG = ['fr02001', 'fr02003', 'fr03002', 'fr03001', '4001'];
     // 40박스 단위 품목(기존 감자 2종). 신규 3종은 1박스 단위.
-    const MOQ40 = ['fr02001', 'fr02002'];
+    const MOQ40 = ['fr02001', 'fr02003'];
 
     function parseQty(v) {
       const n = parseInt(String(v).replace(/[^0-9]/g,''), 10);
@@ -582,7 +582,7 @@
         {id:'5270', name:'캐나다 냉동 난황 2kg×6팩', wh:'이천'},
         {id:'5139', name:'캐나다 냉동 슈퍼휩 1kg×12팩', wh:'이천'},
         {id:'fr02001', name:'SQIZ 9MM 코팅 스킨오프 감자 2kg×6팩', wh:'이천'},
-        {id:'fr02002', name:'SQIZ 7MM 코팅 스킨오프 감자 2kg×6팩', wh:'이천'},
+        {id:'fr02003', name:'SQIZ 7MM 코팅 스킨오프 감자 2kg×6팩', wh:'이천'},
         {id:'fr03002', name:'SQIZ 10MM 스킨온 감자 2kg×6팩', wh:'이천'},
         {id:'fr03001', name:'SQIZ 해시브라운 패티 20EA×12팩', wh:'이천'},
         {id:'4001', name:'SQIZ 시그니쳐 토마토 케찹 3kg×6캔', wh:'이천'}
@@ -651,7 +651,7 @@
         {id:'5270', label:'[이천] 5270 캐나다 냉동 난황 (2kg×6)'},
         {id:'5139', label:'[이천] 5139 캐나다 냉동 슈퍼휩 (1kg×12)'},
         {id:'fr02001', label:'[이천] FR02001 SQIZ 9MM 코팅 스킨오프 감자 (2kg×6)'},
-        {id:'fr02002', label:'[이천] FR02002 SQIZ 7MM 코팅 스킨오프 감자 (2kg×6)'},
+        {id:'fr02003', label:'[이천] FR02003 SQIZ 7MM 코팅 스킨오프 감자 (2kg×6)'},
         {id:'fr03002', label:'[이천] FR03002 SQIZ 10MM 스킨온 감자 (2kg×6)'},
         {id:'fr03001', label:'[이천] FR03001 SQIZ 해시브라운 패티 (20EA×12)'},
         {id:'4001', label:'[이천] 4001 SQIZ 시그니쳐 토마토 케찹 (3kg×6캔)'}
@@ -833,7 +833,7 @@
       '5270':    { date: '2027-07-21', note: '' },             // 난황 생산 2026-07-21 · 풀필 3,444팩 (+2027-03-26 10팩) (WMS 11/6)
       '5139':    { date: '', note: '' },                       // 슈퍼휩 — 풀필 재고 없음 (WMS 11/6)
       'fr02001': { date: '2028-10-21', note: '11/13 입고분' }, // 9mm 시노 HS26FRG006 (생산 2026-10-22)
-      'fr02002': { date: '2028-09-07', note: '' }              // 7mm 시노 HS26FRG004 (생산 2026-09-08)
+      'fr02003': { date: '2028-09-07', note: '' }              // 7mm 시노 HS26FRG004 (생산 2026-09-08)
     };
     window.addEventListener('DOMContentLoaded', () => {
       Object.keys(EXPIRY).forEach(id => {
