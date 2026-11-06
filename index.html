@@ -780,5 +780,31 @@
       }, {passive: true});
     });
   </script>
+  <script>
+    /* ===== 출고 제품 소비기한 — 입고·로트가 바뀌면 이 표만 고친다 =====
+       값이 비어 있으면 표시하지 않는다. note 는 소비기한 옆에 붙는 짧은 안내. */
+    const EXPIRY_UPDATED = '2026-11-06';
+    const EXPIRY = {
+      '5113':    { date: '2028-02-06', note: '' },             // 난백 생산 2026-08-10 · 풀필 659팩 (WMS 11/6)
+      '5313':    { date: '2027-04-22', note: '' },             // 전란 생산 2025-10-24 · 풀필 29팩 (WMS 11/6)
+      '5270':    { date: '2027-07-21', note: '' },             // 난황 생산 2026-07-21 · 풀필 3,444팩 (+2027-03-26 10팩) (WMS 11/6)
+      '5139':    { date: '', note: '' },                       // 슈퍼휩 — 풀필 재고 없음 (WMS 11/6)
+      'fr02001': { date: '2028-10-21', note: '11/13 입고분' }, // 9mm 시노 HS26FRG006 (생산 2026-10-22)
+      'fr02003': { date: '2028-09-07', note: '' }              // 7mm 시노 HS26FRG004 (생산 2026-09-08)
+    };
+    window.addEventListener('DOMContentLoaded', () => {
+      Object.keys(EXPIRY).forEach(id => {
+        const e = EXPIRY[id];
+        if (!e.date) return;
+        const cb = document.getElementById('prod-' + id);
+        const info = cb && cb.closest('.product-item') && cb.closest('.product-item').querySelector('.product-info');
+        if (!info) return;
+        const d = document.createElement('div');
+        d.className = 'product-exp' + (e.note ? ' wait' : '');
+        d.textContent = '소비기한 ' + e.date.replace(/-/g, '.') + '까지' + (e.note ? ' · ' + e.note : '');
+        info.appendChild(d);
+      });
+    });
+  </script>
 </body>
 </html>
