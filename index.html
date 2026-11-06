@@ -139,7 +139,7 @@
           <div class="warehouse-section">
             <div class="warehouse-title">
               <span>🏭 이천 창고 (캐나다 계란류) 부가세 면세 상품</span>
-              <span class="warehouse-code">ICN</span>
+              <span class="warehouse-code">면세</span>
             </div>
 
             <div class="product-item">
@@ -191,11 +191,11 @@
             </div>
           </div>
 
-          <!-- 안성 창고 -->
+          <!-- 이천 창고 (감자·소스) -->
           <div class="warehouse-section">
             <div class="warehouse-title">
-              <span>🏭 안성 창고 (SQIZ 감자) 부가세 적용 상품</span>
-              <span class="warehouse-code">ASG</span>
+              <span>🏭 이천 창고 (SQIZ 감자·소스) 부가세 적용 상품</span>
+              <span class="warehouse-code">과세</span>
             </div>
 
             <div class="product-item">
@@ -211,13 +211,49 @@
             </div>
 
             <div class="product-item">
-              <input type="checkbox" id="prod-fr02003">
+              <input type="checkbox" id="prod-fr02002">
               <div class="product-info">
-                <div class="product-code">FR02003</div>
+                <div class="product-code">FR02002</div>
                 <div class="product-name">SQIZ 7MM 코팅 스킨오프 감자 2kg×6팩</div>
               </div>
               <div class="quantity">
-                <input type="number" class="quantity-input" id="qty-fr02003" min="0" step="40" inputmode="numeric" placeholder="0 (↑ 40단위)">
+                <input type="number" class="quantity-input" id="qty-fr02002" min="0" step="40" inputmode="numeric" placeholder="0 (↑ 40단위)">
+                <span>박스</span>
+              </div>
+            </div>
+
+            <div class="product-item">
+              <input type="checkbox" id="prod-fr03002">
+              <div class="product-info">
+                <div class="product-code">FR03002</div>
+                <div class="product-name">SQIZ 10MM 스킨온 감자 2kg×6팩</div>
+              </div>
+              <div class="quantity">
+                <input type="number" class="quantity-input" id="qty-fr03002" min="0" inputmode="numeric" placeholder="0">
+                <span>박스</span>
+              </div>
+            </div>
+
+            <div class="product-item">
+              <input type="checkbox" id="prod-fr03001">
+              <div class="product-info">
+                <div class="product-code">FR03001</div>
+                <div class="product-name">SQIZ 해시브라운 패티 20EA×12팩</div>
+              </div>
+              <div class="quantity">
+                <input type="number" class="quantity-input" id="qty-fr03001" min="0" inputmode="numeric" placeholder="0">
+                <span>박스</span>
+              </div>
+            </div>
+
+            <div class="product-item">
+              <input type="checkbox" id="prod-4001">
+              <div class="product-info">
+                <div class="product-code">4001</div>
+                <div class="product-name">SQIZ 시그니쳐 토마토 케찹 3kg×6캔</div>
+              </div>
+              <div class="quantity">
+                <input type="number" class="quantity-input" id="qty-4001" min="0" inputmode="numeric" placeholder="0">
                 <span>박스</span>
               </div>
             </div>
@@ -229,11 +265,11 @@
           <h3 class="section-title">📊 주문 요약</h3>
           <div class="summary-grid">
             <div class="summary-item">
-              <div class="label">이천창고</div>
+              <div class="label">계란류</div>
               <div class="value" id="icnTotal">0박스</div>
             </div>
             <div class="summary-item">
-              <div class="label">안성창고</div>
+              <div class="label">감자·소스</div>
               <div class="value" id="asgTotal">0박스</div>
             </div>
             <div class="summary-item total-summary">
@@ -261,9 +297,9 @@
             <input type="date" id="deliveryDate" required>
           </div>
 
-          <!-- 안성 + 배송요청일 때만 -->
+          <!-- 감자·소스 + 배송요청일 때만 -->
           <div class="form-group hidden" id="requestTypeGroup">
-            <label>출고 방식 (안성창고 + 배송 요청 시)</label>
+            <label>출고 방식 (감자·소스 + 배송 요청 시)</label>
             <select id="requestType">
               <option value="팔레트 출고" selected>팔레트 출고</option>
               <option value="수작업 출고">수작업 출고</option>
@@ -281,9 +317,9 @@
               <div>
                 <div class="delivery-notice-title">배송 안내사항</div>
                 <div class="delivery-notice-content">
-                  • <strong>이천창고</strong>와 <strong>안성창고</strong> 제품은 <strong>합배송이 불가</strong>합니다.<br>
-                  • 두 창고 제품을 함께 주문하실 경우 별도 배송됩니다.<br>
-                  • 각각 MOQ를 유지해 주시기 바랍니다.
+                  • <strong>계란류</strong>와 <strong>감자·소스류</strong>는 <strong>합배송이 불가</strong>합니다.<br>
+                  • 두 품목군을 함께 주문하실 경우 별도 배송됩니다.<br>
+                  • 감자 9MM·7MM은 <strong>40박스 단위</strong>로 주문해 주시기 바랍니다.
                 </div>
               </div>
             </div>
@@ -359,7 +395,9 @@
     $('orderNumber').value = generateOrderNumber();
 
     const ICN = ['5113','5313','5270','5139'];
-    const ASG = ['fr02001', 'fr02003'];
+    const ASG = ['fr02001', 'fr02002', 'fr03002', 'fr03001', '4001'];
+    // 40박스 단위 품목(기존 감자 2종). 신규 3종은 1박스 단위.
+    const MOQ40 = ['fr02001', 'fr02002'];
 
     function parseQty(v) {
       const n = parseInt(String(v).replace(/[^0-9]/g,''), 10);
@@ -401,8 +439,7 @@
 
         cb.addEventListener('change', () => {
           if (cb.checked) {
-            const isASG = ASG.includes(id);
-            const defaultVal = isASG ? 40 : 1;
+            const defaultVal = MOQ40.includes(id) ? 40 : 1;
             if (!qty.value || parseQty(qty.value) === 0) qty.value = String(defaultVal);
           } else {
             qty.value = '';
@@ -421,7 +458,7 @@
     }
 
     function applyASGStepSmart() {
-      ASG.forEach(id => {
+      MOQ40.forEach(id => {
         const qty = $('qty-' + id);
         if (!qty) return;
 
@@ -544,14 +581,17 @@
         {id:'5313', name:'캐나다 냉동 전란 2kg×6팩', wh:'이천'},
         {id:'5270', name:'캐나다 냉동 난황 2kg×6팩', wh:'이천'},
         {id:'5139', name:'캐나다 냉동 슈퍼휩 1kg×12팩', wh:'이천'},
-        {id:'fr02001', name:'SQIZ 9MM 코팅 스킨오프 감자 2kg×6팩', wh:'안성'},
-        {id:'fr02003', name:'SQIZ 7MM 코팅 스킨오프 감자 2kg×6팩', wh:'안성'}
+        {id:'fr02001', name:'SQIZ 9MM 코팅 스킨오프 감자 2kg×6팩', wh:'이천'},
+        {id:'fr02002', name:'SQIZ 7MM 코팅 스킨오프 감자 2kg×6팩', wh:'이천'},
+        {id:'fr03002', name:'SQIZ 10MM 스킨온 감자 2kg×6팩', wh:'이천'},
+        {id:'fr03001', name:'SQIZ 해시브라운 패티 20EA×12팩', wh:'이천'},
+        {id:'4001', name:'SQIZ 시그니쳐 토마토 케찹 3kg×6캔', wh:'이천'}
       ];
       P.forEach(p => {
         const cb = $('prod-' + p.id);
         const q = parseQty(($('qty-' + p.id) || {}).value);
         if (cb && cb.checked && q > 0) {
-          list.push(`• [${p.wh}] ${p.id} - ${p.name}: <strong>${q}박스</strong>`);
+          list.push(`• [${p.wh}] ${p.id.toUpperCase()} - ${p.name}: <strong>${q}박스</strong>`);
         }
       });
       html += list.length ? `<div>${list.join('<br>')}</div>` : `<p style="color:#ef4444">선택된 제품이 없습니다.</p>`;
@@ -610,8 +650,11 @@
         {id:'5313', label:'[이천] 5313 캐나다 냉동 전란 (2kg×6)'},
         {id:'5270', label:'[이천] 5270 캐나다 냉동 난황 (2kg×6)'},
         {id:'5139', label:'[이천] 5139 캐나다 냉동 슈퍼휩 (1kg×12)'},
-        {id:'fr02001', label:'[안성] FR02001 SQIZ 9MM 코팅 스킨오프 감자 (2kg×6)'},
-        {id:'fr02003', label:'[안성] FR02003 SQIZ 7MM 코팅 스킨오프 감자 (2kg×6)'}
+        {id:'fr02001', label:'[이천] FR02001 SQIZ 9MM 코팅 스킨오프 감자 (2kg×6)'},
+        {id:'fr02002', label:'[이천] FR02002 SQIZ 7MM 코팅 스킨오프 감자 (2kg×6)'},
+        {id:'fr03002', label:'[이천] FR03002 SQIZ 10MM 스킨온 감자 (2kg×6)'},
+        {id:'fr03001', label:'[이천] FR03001 SQIZ 해시브라운 패티 (20EA×12)'},
+        {id:'4001', label:'[이천] 4001 SQIZ 시그니쳐 토마토 케찹 (3kg×6캔)'}
       ];
       P.forEach(p => {
         const cb = $('prod-' + p.id);
@@ -790,7 +833,7 @@
       '5270':    { date: '2027-07-21', note: '' },             // 난황 생산 2026-07-21 · 풀필 3,444팩 (+2027-03-26 10팩) (WMS 11/6)
       '5139':    { date: '', note: '' },                       // 슈퍼휩 — 풀필 재고 없음 (WMS 11/6)
       'fr02001': { date: '2028-10-21', note: '11/13 입고분' }, // 9mm 시노 HS26FRG006 (생산 2026-10-22)
-      'fr02003': { date: '2028-09-07', note: '' }              // 7mm 시노 HS26FRG004 (생산 2026-09-08)
+      'fr02002': { date: '2028-09-07', note: '' }              // 7mm 시노 HS26FRG004 (생산 2026-09-08)
     };
     window.addEventListener('DOMContentLoaded', () => {
       Object.keys(EXPIRY).forEach(id => {
