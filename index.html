@@ -229,7 +229,7 @@
                 <div class="product-name">SQIZ 10MM 스킨온 감자 2kg×6팩</div>
               </div>
               <div class="quantity">
-                <input type="number" class="quantity-input" id="qty-fr03002" min="0" inputmode="numeric" placeholder="0">
+                <input type="number" class="quantity-input" id="qty-fr03002" min="0" step="32" inputmode="numeric" placeholder="0 (↑ 32단위)">
                 <span>박스</span>
               </div>
             </div>
@@ -319,7 +319,7 @@
                 <div class="delivery-notice-content">
                   • <strong>계란류</strong>와 <strong>감자·소스류</strong>는 <strong>합배송이 불가</strong>합니다.<br>
                   • 두 품목군을 함께 주문하실 경우 별도 배송됩니다.<br>
-                  • 감자 9MM·7MM은 <strong>40박스 단위</strong>로 주문해 주시기 바랍니다.
+                  • 감자 9MM·7MM은 <strong>40박스 단위</strong>, 10MM은 <strong>32박스 단위</strong>(팔레트 1개 적재량)로 주문해 주시기 바랍니다.
                 </div>
               </div>
             </div>
@@ -396,8 +396,9 @@
 
     const ICN = ['5113','5313','5270','5139'];
     const ASG = ['fr02001', 'fr02003', 'fr03002', 'fr03001', '4001'];
-    // 40박스 단위 품목(기존 감자 2종). 신규 3종은 1박스 단위.
-    const MOQ40 = ['fr02001', 'fr02003'];
+    // 팔레트 단위 품목 — 9mm·7mm 40박스 · 10mm 32박스(팔레트 적재 32, 2026-11-23). 나머지는 1박스 단위.
+    const UNIT = {'fr02001':40, 'fr02003':40, 'fr03002':32};
+    const MOQ40 = Object.keys(UNIT);
 
     function parseQty(v) {
       const n = parseInt(String(v).replace(/[^0-9]/g,''), 10);
@@ -439,7 +440,7 @@
 
         cb.addEventListener('change', () => {
           if (cb.checked) {
-            const defaultVal = MOQ40.includes(id) ? 40 : 1;
+            const defaultVal = UNIT[id] || 1;
             if (!qty.value || parseQty(qty.value) === 0) qty.value = String(defaultVal);
           } else {
             qty.value = '';
@@ -463,9 +464,10 @@
         if (!qty) return;
 
         qty.setAttribute('min','0');
-        qty.setAttribute('step','40');
+        const U = UNIT[id];
+        qty.setAttribute('step', String(U));
         qty.setAttribute('inputmode','numeric');
-        qty.placeholder = '0 (↑ 40단위)';
+        qty.placeholder = '0 (↑ ' + U + '단위)';
 
         let last = parseQty(qty.value);
 
@@ -477,7 +479,7 @@
 
           if (e.key === 'ArrowUp') {
             e.preventDefault();
-            const next = Math.max(40, (Math.floor(current / 40) + 1) * 40);
+            const next = Math.max(U, (Math.floor(current / U) + 1) * U);
             qty.value = String(next);
             last = next;
             qty.dispatchEvent(new Event('input', {bubbles:true}));
@@ -501,7 +503,7 @@
           }
 
           if (current > last) {
-            const snapped = Math.max(40, Math.ceil(current / 40) * 40);
+            const snapped = Math.max(U, Math.ceil(current / U) * U);
             if (snapped !== current) {
               qty.value = String(snapped);
               current = snapped;
